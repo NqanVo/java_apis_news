@@ -21,7 +21,7 @@ public class UserInfoOAuthConverter {
         return userEntity;
     }
 
-    public UserEntity OAuthGitGoogleEntity(ResponseUserInfoGoogleOAuth userInfoGoogleOAuth){
+    public UserEntity OAuthGoogleEntity(ResponseUserInfoGoogleOAuth userInfoGoogleOAuth){
         UserEntity userEntity = new UserEntity();
         userEntity.setUsername(userInfoGoogleOAuth.getEmail());
         userEntity.setFullName(userInfoGoogleOAuth.getName());

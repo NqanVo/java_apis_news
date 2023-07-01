@@ -15,7 +15,7 @@ import com.javaspring.blogapi.model.RoleEntity;
 import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.repository.UserRepository;
 import com.javaspring.blogapi.service.UserInterface;
-import com.javaspring.blogapi.service.FilesService;
+import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -43,34 +43,60 @@ public class UserService implements UserInterface {
     private RoleService roleService;
     @Autowired
     private AuthenticationManager authenticationManager;
-
     @Autowired
     private FilesService filesService;
-
     @Autowired
-    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private EmailService emailService;
+    @Autowired
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     @Autowired
     private UserInfoOAuthConverter oAuthConverter;
 
     //create new user or update user
     @Override
-    public UserDTO save(UserDTO userDTO) {
-        UserEntity newUserEntity;
+    public UserDTO save(UserDTO userDTO, TypesLogin type) {
+        try {
+            UserEntity newUserEntity;
 
-        if (userRepository.findByUsername(userDTO.getUsername()) != null)
-            throw new CustomException.BadRequestException("Người dùng đã tồn tại");
+            if (userRepository.findByUsername(userDTO.getUsername()) != null)
+                throw new CustomException.BadRequestException("Người dùng đã tồn tại");
 
-        RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
-        newUserEntity = userConverter.UserDTOToUser(userDTO);
-        newUserEntity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        newUserEntity.getRoles().add(roleEntityUser);
-        newUserEntity.setStatus(1);
+            RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
+            String verifyCodeEmail = emailService.generateRandomString(50);
+            newUserEntity = userConverter.UserDTOToUser(userDTO);
+            newUserEntity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+            newUserEntity.getRoles().add(roleEntityUser);
+            if (type.equals(TypesLogin.OAUTH)) {
+                newUserEntity.setStatus(1);
+                newUserEntity.setEnabled(true);
+                newUserEntity.setVerifyCodeEmail("");
+            } else {
+                // * Chưa xác thực
+                newUserEntity.setStatus(0);
+                newUserEntity.setEnabled(false);
+                newUserEntity.setVerifyCodeEmail(verifyCodeEmail);
+            }
 
-        newUserEntity = userRepository.save(newUserEntity);
-        UserDTO dto = userConverter.UserToUserDTO(newUserEntity);
-        return dto;
+            newUserEntity = userRepository.save(newUserEntity);
+            UserDTO dto = userConverter.UserToUserDTO(newUserEntity);
+            // * Nếu là tài khoản thường, gửi email xác thực sau khi tạo tào khoản
+            if (type.equals(TypesLogin.NORMAL)) emailService.sendMail(userDTO.getUsername(), verifyCodeEmail);
+            return dto;
+        } catch (MessagingException ex) {
+            throw new CustomException.BadRequestException("Lỗi gửi Email xác thực, thử lại sau");
+        }
     }
 
+    public void verifyCode(String verifyCodeEmail) {
+        UserEntity userEntity = userRepository.findByVerifyCodeEmail(verifyCodeEmail);
+        if (userEntity == null) throw new CustomException.BadRequestException("Mã xác thực không tồn tại");
+        userEntity.setVerifyCodeEmail("");
+        userEntity.setEnabled(true);
+        userEntity.setStatus(1);
+        userRepository.save(userEntity);
+    }
+
+    @Override
     @Transactional(rollbackOn = Exception.class)
 // quay về quá khứ nếu xãy ra lỗi trong csdl (bao gồm cả xóa ảnh vừa lưu/ không lưu db)
     public UserDTO saveImage(String username, MultipartFile[] file) throws IOException {
@@ -93,6 +119,7 @@ public class UserService implements UserInterface {
         return userConverter.UserToUserDTO(userEntity);
     }
 
+    @Override
     public UserDTO update(UserUpdateDTO userUpdateDTO, String username) {
         UserEntity userEntity;
         UserEntity oldUserEntity = userRepository.findByUsername(username);
@@ -106,6 +133,7 @@ public class UserService implements UserInterface {
         return dto;
     }
 
+    @Override
     public void updatePassword(UserUpdatePasswordDTO userUpdatePasswordDTO, String username) {
         UserEntity oldUserEntity = userRepository.findByUsername(username);
 
@@ -120,12 +148,14 @@ public class UserService implements UserInterface {
         UserDTO dto = userConverter.UserToUserDTO(oldUserEntity);
     }
 
+    @Override
     public UserDTO findByUsername(String username) {
         UserEntity user = userRepository.findByUsername(username);
         if (user == null) throw new CustomException.NotFoundException("Không tìm thấy người dùng " + username);
         return userConverter.UserToUserDTO(user);
     }
 
+    @Override
     public void updateRoleUser(Long id, String[] roleNames) {
         UserEntity userEntity = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         List<RoleEntity> roleEntityList = new ArrayList<>();
@@ -138,6 +168,7 @@ public class UserService implements UserInterface {
         userRepository.save(userEntity);
     }
 
+    @Override
     public List<UserDTO> findAll(Pageable pageable) {
         List<UserEntity> list = userRepository.findAll(pageable).getContent();
         List<UserDTO> listDTO = new ArrayList<>();
@@ -146,10 +177,12 @@ public class UserService implements UserInterface {
         return listDTO;
     }
 
+    @Override
     public Long countItems() {
         return userRepository.count();
     }
 
+    @Override
     public String loginUser(AuthLoginDTO authLoginDTO) {
         UserEntity userEntity = userRepository.findByUsername(authLoginDTO.getUsername());
         if (userEntity == null)
@@ -162,23 +195,26 @@ public class UserService implements UserInterface {
         return token;
     }
 
+    @Override
     public String loginOAuth(ResponseUserInfoGoogleOAuth googleUser) {
         UserEntity userEntity = userRepository.findByUsername(googleUser.getEmail());
         UserDTO userDTO = new UserDTO();
         if (userEntity == null) {
-            userEntity = oAuthConverter.OAuthGitGoogleEntity(googleUser);
-            userDTO = save(userConverter.UserToUserDTO(userEntity));
+            userEntity = oAuthConverter.OAuthGoogleEntity(googleUser);
+            userDTO = save(userConverter.UserToUserDTO(userEntity), TypesLogin.OAUTH);
         } else {
             userDTO = userConverter.UserToUserDTO(userEntity);
         }
         return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
     }
+
+    @Override
     public String loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) {
         UserEntity userEntity = userRepository.findByUsername(gitHubOAuth.getLogin());
         UserDTO userDTO = new UserDTO();
         if (userEntity == null) {
             userEntity = oAuthConverter.OAuthGitHubToEntity(gitHubOAuth);
-            userDTO = save(userConverter.UserToUserDTO(userEntity));
+            userDTO = save(userConverter.UserToUserDTO(userEntity), TypesLogin.OAUTH);
         } else {
             userDTO = userConverter.UserToUserDTO(userEntity);
         }

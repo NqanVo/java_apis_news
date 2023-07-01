@@ -1,6 +1,7 @@
-package com.javaspring.blogapi.service;
+package com.javaspring.blogapi.service.impl;
 
 import com.javaspring.blogapi.exception.CustomException;
+import com.javaspring.blogapi.service.FilesInterface;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,7 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Service
-public class FilesService {
+public class FilesService implements FilesInterface {
     private final String uploadDir = "uploads"; // Tên thư mục uploads
 
     private Path folderImages() throws IOException {

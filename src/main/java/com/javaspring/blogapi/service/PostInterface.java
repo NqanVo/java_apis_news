@@ -12,5 +12,6 @@ public interface PostInterface {
     void deletePosts(Long[] ids);
     List<PostDTO> findAll(Pageable pageable);
     PostDTO findById(Long id);
+    void deletePost(Long id);
     int countItems();
 }

@@ -3,10 +3,7 @@ package com.javaspring.blogapi.dto.user;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.javaspring.blogapi.dto.BaseDTO;
 import com.javaspring.blogapi.model.RoleEntity;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +12,8 @@ public class UserDTO extends BaseDTO {
     @NotNull(message = "Tài khoản không được trống")
     @NotBlank(message = "Mật khẩu không được trống")
     @Size(min = 5, max = 50, message = "Tối thiểu là 5 ký tự và tối đa là 50")
-    @Pattern(regexp = "^[a-z0-9]+$", message = "Tài khoản người dùng chỉ có thể là ký tự thường và số")
+//    @Pattern(regexp = "^[a-z0-9]+$", message = "Tài khoản người dùng chỉ có thể là ký tự thường và số")
+    @Email(message = "username phải là Email hợp lệ")
     private String username;
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotNull(message = "Mật khẩu không được trống")

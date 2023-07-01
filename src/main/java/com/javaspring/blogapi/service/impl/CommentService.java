@@ -12,16 +12,16 @@ import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.repository.CommentRepository;
 import com.javaspring.blogapi.repository.PostRepository;
 import com.javaspring.blogapi.repository.SubCommentRepository;
+import com.javaspring.blogapi.service.CommentInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class CommentService {
+public class CommentService implements CommentInterface {
     @Autowired
     private CommentRepository commentRepository;
     @Autowired
@@ -35,6 +35,7 @@ public class CommentService {
     @Autowired
     private final IsUserOrIsAdmin userDetailsJwt = new IsUserOrIsAdmin();
 
+    @Override
     public List<CommentDTO> findByIdPost(Long idPost, Pageable pageable) {
         List<CommentEntity> entityList = commentRepository.findByPostEntityId(idPost, pageable);
         if (entityList == null || entityList.isEmpty())
@@ -45,6 +46,7 @@ public class CommentService {
         return dtoList;
     }
 
+    @Override
     public void save(Long idPost, CommentDTO commentDTO) {
         PostEntity postEntity = postRepository.findById(idPost).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng: " + idPost));
 
@@ -65,6 +67,7 @@ public class CommentService {
         }
         commentEntity = commentRepository.save(commentEntity);
     }
+    @Override
     public void deleteComment(Long idCmt) {
         userDetailsJwt.getUserAndIsAdmin();
         CommentEntity commentEntity = commentRepository.findById(idCmt).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bình luận"));
@@ -74,6 +77,7 @@ public class CommentService {
     }
 
     // * SUBCOMMENTS
+    @Override
     public List<SubCommentDTO> subFindByIdComents(Long idCmt, Pageable pageable) {
         List<SubCommentEntity> subCommentEntities = subCommentRepository.findByCommentEntityId(idCmt, pageable);
         if(subCommentEntities.size() == 0) throw new CustomException.NotFoundException("Không có bình luận con của: "+ idCmt);
@@ -83,6 +87,7 @@ public class CommentService {
         return subCommentDTO;
     }
 
+    @Override
     public void subSave(Long idCmt, SubCommentDTO subCommentDTO) {
         userDetailsJwt.getUserAndIsAdmin();
         CommentEntity commentEntity = commentRepository.findById(idCmt).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bình luận"));
@@ -100,6 +105,7 @@ public class CommentService {
         subCommentEntity = subCommentRepository.save(subCommentEntity);
     }
 
+    @Override
     public void deleteSubCmt(Long idSubCmt){
         userDetailsJwt.getUserAndIsAdmin();
         SubCommentEntity subCommentEntity = subCommentRepository.findById(idSubCmt).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bình luận"));

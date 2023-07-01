@@ -9,7 +9,6 @@ import com.javaspring.blogapi.model.PostEntity;
 import com.javaspring.blogapi.repository.CategoryRepository;
 import com.javaspring.blogapi.repository.PostRepository;
 import com.javaspring.blogapi.repository.UserRepository;
-import com.javaspring.blogapi.service.FilesService;
 import com.javaspring.blogapi.service.PostInterface;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,6 +111,7 @@ public class PostService implements PostInterface {
             postRepository.deleteById(id);
         }
     }
+    @Override
     public void deletePost(Long id) {
         userDetailsJwt.getUserAndIsAdmin();
         PostEntity post = postRepository.findById(id).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + id));

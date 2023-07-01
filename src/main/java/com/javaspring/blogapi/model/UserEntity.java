@@ -24,6 +24,10 @@ public class UserEntity extends BaseModel implements UserDetails {
     private String avatar;
     @Column
     private Integer status;
+    @Column
+    private String verifyCodeEmail;
+    @Column
+    private boolean enabled;
 
     @OneToMany(mappedBy = "userEntity",cascade = CascadeType.ALL)
     private List<PostEntity> postEntityList = new ArrayList<>();
@@ -76,7 +80,7 @@ public class UserEntity extends BaseModel implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 
     public void setPassword(String password) {
@@ -113,5 +117,17 @@ public class UserEntity extends BaseModel implements UserDetails {
 
     public void setRoles(List<RoleEntity> roleEntities) {
         this.roleEntities = roleEntities;
+    }
+
+    public String getVerifyCodeEmail() {
+        return verifyCodeEmail;
+    }
+
+    public void setVerifyCodeEmail(String verifyCodeEmail) {
+        this.verifyCodeEmail = verifyCodeEmail;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }
