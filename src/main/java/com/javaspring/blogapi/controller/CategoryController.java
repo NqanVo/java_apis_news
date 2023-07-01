@@ -78,6 +78,7 @@ public class CategoryController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MappingJacksonValue> createCat(@Valid @RequestBody CategoryDTO categoryDTO) {
+        categoryService.save(categoryDTO);
         return ResponseEntity.ok().body(customFilterProps.mappingJacksonValue(categoryService.findAllCat(), props, "CategoryFilter", false));
     }
     @Operation(
