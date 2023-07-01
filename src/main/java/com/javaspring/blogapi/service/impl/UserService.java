@@ -1,7 +1,10 @@
 package com.javaspring.blogapi.service.impl;
 
 import com.javaspring.blogapi.config.jwt.JwtService2;
+import com.javaspring.blogapi.config.oauth.ResponseUserInfoGitHubOAuth;
+import com.javaspring.blogapi.config.oauth.ResponseUserInfoGoogleOAuth;
 import com.javaspring.blogapi.converter.UserConverter;
+import com.javaspring.blogapi.converter.UserInfoOAuthConverter;
 import com.javaspring.blogapi.dto.auth.AuthLoginDTO;
 import com.javaspring.blogapi.dto.user.UserUpdatePasswordDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
@@ -24,8 +27,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -48,6 +49,8 @@ public class UserService implements UserInterface {
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private UserInfoOAuthConverter oAuthConverter;
 
     //create new user or update user
     @Override
@@ -68,7 +71,8 @@ public class UserService implements UserInterface {
         return dto;
     }
 
-    @Transactional(rollbackOn = Exception.class)// quay về quá khứ nếu xãy ra lỗi trong csdl (bao gồm cả xóa ảnh vừa lưu/ không lưu db)
+    @Transactional(rollbackOn = Exception.class)
+// quay về quá khứ nếu xãy ra lỗi trong csdl (bao gồm cả xóa ảnh vừa lưu/ không lưu db)
     public UserDTO saveImage(String username, MultipartFile[] file) throws IOException {
         UserEntity userEntity = userRepository.findByUsername(username);
         if (userEntity == null) throw new CustomException.NotFoundException("Không tìm thấy người dùng: " + username);
@@ -157,4 +161,28 @@ public class UserService implements UserInterface {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authLoginDTO.getUsername(), authLoginDTO.getPassword()));
         return token;
     }
+
+    public String loginOAuth(ResponseUserInfoGoogleOAuth googleUser) {
+        UserEntity userEntity = userRepository.findByUsername(googleUser.getEmail());
+        UserDTO userDTO = new UserDTO();
+        if (userEntity == null) {
+            userEntity = oAuthConverter.OAuthGitGoogleEntity(googleUser);
+            userDTO = save(userConverter.UserToUserDTO(userEntity));
+        } else {
+            userDTO = userConverter.UserToUserDTO(userEntity);
+        }
+        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
+    }
+    public String loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) {
+        UserEntity userEntity = userRepository.findByUsername(gitHubOAuth.getLogin());
+        UserDTO userDTO = new UserDTO();
+        if (userEntity == null) {
+            userEntity = oAuthConverter.OAuthGitHubToEntity(gitHubOAuth);
+            userDTO = save(userConverter.UserToUserDTO(userEntity));
+        } else {
+            userDTO = userConverter.UserToUserDTO(userEntity);
+        }
+        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
+    }
 }
+
