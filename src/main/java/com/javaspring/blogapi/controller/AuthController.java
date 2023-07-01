@@ -9,6 +9,8 @@ import com.javaspring.blogapi.dto.auth.AuthResponseDTO;
 import com.javaspring.blogapi.dto.error.ErrorDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
 import com.javaspring.blogapi.repository.UserRepository;
+import com.javaspring.blogapi.service.impl.EmailService;
+import com.javaspring.blogapi.service.impl.TypesLogin;
 import com.javaspring.blogapi.service.impl.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -18,6 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +42,8 @@ public class AuthController {
     private UserService userService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private EmailService emailService;
     @Value("${google.client.id}")
     private String googleClientId;
     @Value("${google.client.secret}")
@@ -79,7 +84,7 @@ public class AuthController {
             })
     @PostMapping(path = "/register")
     public ResponseEntity<UserDTO> register(@Valid @RequestBody UserDTO userDTO) {
-        UserDTO newUser = userService.save(userDTO);
+        UserDTO newUser = userService.save(userDTO, TypesLogin.NORMAL);
         URI uri = URI.create("/users/" + newUser.getId());
         return ResponseEntity.created(uri).body(newUser);
     }
@@ -205,6 +210,22 @@ public class AuthController {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
+    }
+
+
+//    @GetMapping(path = "/verify-email/{email}")
+//    public void sendCodeVerifyEmail(@PathVariable String email) throws MessagingException {
+//        emailService.sendMail(email,"123");
+//    }
+
+    @GetMapping(path = "/verify-email")
+    public ResponseEntity<Object> verifyEmail(@RequestParam String verify_code) {
+        userService.verifyCode(verify_code);
+        String redirectUrl = "https://nqanvo.github.io/verifysuccess/";
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, redirectUrl)
+                .build();
+//        return "Xác thực thành công";
     }
 }
 

@@ -5,7 +5,7 @@ import com.javaspring.blogapi.dto.user.UserUpdatePasswordDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
 import com.javaspring.blogapi.dto.user.UserUpdateDTO;
 import com.javaspring.blogapi.response.ResponseList;
-import com.javaspring.blogapi.service.FilesService;
+import com.javaspring.blogapi.service.impl.FilesService;
 import com.javaspring.blogapi.service.impl.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;

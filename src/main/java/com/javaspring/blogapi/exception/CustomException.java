@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -58,15 +59,15 @@ public class CustomException extends ResponseEntityExceptionHandler {
                 request.getDescription(false));
         return new ResponseEntity<ErrorDTO>(errorDetails, HttpStatus.BAD_REQUEST);
     }
-    // * Xử lý lỗi không gửi lên file
-//    @ExceptionHandler(MissingServletRequestPartException.class)
-//    public final ResponseEntity<ErrorDTO> handleRequiredFileException(Exception ex, WebRequest request) throws Exception {
-//        ErrorDTO errorDetails = new ErrorDTO(
-//                LocalDateTime.now(),
-//                "Thiếu file gửi lên",
-//                request.getDescription(false));
-//        return new ResponseEntity<ErrorDTO>(errorDetails, HttpStatus.BAD_REQUEST);
-//    }
+    // * Xử lý lỗi tài khoản chưa kích hoạt
+    @ExceptionHandler(DisabledException.class)
+    public final ResponseEntity<ErrorDTO> handleDisabledException(Exception ex, WebRequest request) throws Exception {
+        ErrorDTO errorDetails = new ErrorDTO(
+                LocalDateTime.now(),
+                "Tài khoản chưa kích hoạt, vui lòng kiểm tra email",
+                request.getDescription(false));
+        return new ResponseEntity<ErrorDTO>(errorDetails, HttpStatus.UNAUTHORIZED);
+    }
     // * Xử lý lỗi không tìm thấy ảnh
     @ExceptionHandler(NoSuchFileException.class)
     public final ResponseEntity<ErrorDTO> handleNotFoundFileException(Exception ex, WebRequest request) throws Exception {

@@ -2,26 +2,25 @@ package com.javaspring.blogapi.service.impl;
 
 import com.javaspring.blogapi.converter.CategoryConverter;
 import com.javaspring.blogapi.dto.CategoryDTO;
-import com.javaspring.blogapi.dto.error.ErrorDTO;
 import com.javaspring.blogapi.exception.CustomException;
 import com.javaspring.blogapi.model.CategoryEntity;
 import com.javaspring.blogapi.repository.CategoryRepository;
+import com.javaspring.blogapi.service.CategoryInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class CategoryService {
+public class CategoryService implements CategoryInterface {
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
     private CategoryConverter categoryConverter;
 
+    @Override
     public CategoryDTO save(CategoryDTO categoryDTO) {
         CategoryEntity temp;
         categoryDTO.setCode(categoryConverter.NameToCode(categoryDTO.getName()));
@@ -44,6 +43,7 @@ public class CategoryService {
         return categoryConverter.EntityToDTO(temp);
     }
 
+    @Override
     public List<CategoryDTO> findAllCat() {
         List<CategoryDTO> listDto = new ArrayList<>();
         List<CategoryEntity> listEntity = categoryRepository.findAll();
@@ -52,12 +52,14 @@ public class CategoryService {
         return listDto;
     }
 
+    @Override
     public CategoryDTO findByCode(String code) {
         CategoryEntity entity = categoryRepository.findByCode(code);
         if (entity == null) throw new CustomException.NotFoundException("Khong tìm thấy danh mục: " + code);
         return categoryConverter.EntityToDTO(entity);
     }
 
+    @Override
     public List<CategoryDTO> deleteCat(String code) throws DataIntegrityViolationException {
         try {
             if (!categoryRepository.existsByCode(code))
