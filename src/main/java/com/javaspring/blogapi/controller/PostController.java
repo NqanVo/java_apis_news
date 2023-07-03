@@ -32,12 +32,10 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(path = "/posts")
-@Tag(name = "Posts/Comments Controller")
+@Tag(name = "Posts Controller")
 public class PostController {
     @Autowired
     private PostService postService;
-    @Autowired
-    private CommentService commentService;
     @Autowired private FilesService filesService;
 
     @Operation(
@@ -51,9 +49,9 @@ public class PostController {
             })
     @GetMapping
     public ResponseList<PostDTO> findAllPost(@RequestParam(required = false) Long limit, @RequestParam(required = false) Long currentPage) {
-        Long actualLimit = (limit != null && limit > 0) ? limit : 10;
+        long actualLimit = (limit != null && limit > 0) ? limit : 10;
         Long actualCurrentPage = (currentPage != null && currentPage > 0) ? currentPage : 1;
-        Pageable pageable = PageRequest.of(actualCurrentPage.intValue() - 1, actualLimit.intValue());
+        Pageable pageable = PageRequest.of(actualCurrentPage.intValue() - 1, (int) actualLimit);
         List<PostDTO> result = postService.findAll(pageable);
 
         ResponseList res = new ResponseList();
@@ -64,6 +62,7 @@ public class PostController {
         res.setData(result);
         return res;
     }
+
     @Operation(
             description = "Lấy bài viết theo id",
             responses = {
@@ -147,144 +146,4 @@ public class PostController {
         postService.deletePost(id);
         return ResponseEntity.ok().body("Delete success posts: " + id);
     }
-    // * COMMENTS
-    @Operation(
-            description = "Lấy bình luận theo id bài viết",
-            responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = CommentDTO.class))), responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @GetMapping(path = "/{idPost}/comments")
-    public ResponseEntity<ResponseComment<CommentDTO>> findAllCommentsPost(@PathVariable Long idPost, @RequestParam(required = false) Long limit) {
-        Long actualLimit = (limit == null || limit <= 0) ? 10 : limit;
-        // Tạo đối tượng Sort theo thời gian tạo giảm dần
-        Sort sort = Sort.by("createdDate").descending();
-        Pageable pageable = PageRequest.of(0, actualLimit.intValue(), sort);
-
-        return ResponseEntity.ok().body(new ResponseComment<CommentDTO>(commentService.findByIdPost(idPost, pageable), actualLimit));
-    }
-    @Operation(
-            description = "Tạo bình luận, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content, responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @PostMapping(path = "/{idPost}/comments")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void createCommentPost(@PathVariable Long idPost, @Valid @RequestBody CommentDTO commentDTO) {
-        commentService.save(idPost, commentDTO);
-    }
-    @Operation(
-            description = "Chỉnh sửa bình luận, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = CommentDTO.class))), responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @PutMapping(path = "/{idPost}/comments/{idComment}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void updateCommentPost(@PathVariable Long idPost, @PathVariable Long idComment, @Valid @RequestBody CommentDTO commentDTO) {
-        commentDTO.setId(idComment);
-        commentService.save(idPost, commentDTO);
-    }
-    @Operation(
-            description = "Xóa bình luận, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content, responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @DeleteMapping(path = "/{idPost}/comments/{idCmt}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void deleteCommentPost(@PathVariable Long idCmt) {
-        commentService.deleteComment(idCmt);
-    }
-
-    // * SUBCOMMENTS
-    @Operation(
-            description = "Lấy bình luận con của bình luận cha",
-            responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = SubCommentDTO.class))), responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @GetMapping(path = "/{idPost}/comments/{idComment}/subcomments")
-    public ResponseEntity<ResponseComment<SubCommentDTO>> findAllSubComments(@PathVariable Long idComment, @RequestParam(required = false) Long limit) {
-        Long actualLimit = (limit == null || limit <= 0) ? 10 : limit;
-        // Tạo đối tượng Sort theo thời gian tạo giảm dần
-        Sort sort = Sort.by("createdDate").descending();
-        Pageable pageable = PageRequest.of(0, actualLimit.intValue(), sort);
-
-        return ResponseEntity.ok().body(new ResponseComment<SubCommentDTO>(commentService.subFindByIdComents(idComment, pageable), actualLimit));
-    }
-    @Operation(
-            description = "Tạo bình luận con, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content, responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @PostMapping(path = "/{idPost}/comments/{idComment}/subcomments")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void createSubComment(@PathVariable Long idComment, @Valid @RequestBody SubCommentDTO subCommentDTO) {
-        commentService.subSave(idComment, subCommentDTO);
-    }
-    @Operation(
-            description = "Sửa bình luận con, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content, responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @PutMapping(path = "/{idPost}/comments/{idComment}/subcomments/{idSubCmt}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void updateSubComment(@PathVariable Long idComment, @PathVariable Long idSubCmt, @Valid @RequestBody SubCommentDTO subCommentDTO) {
-        subCommentDTO.setId(idSubCmt);
-        commentService.subSave(idComment, subCommentDTO);
-    }
-    @Operation(
-            description = "Xóa bình luận con, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content, responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
-    @DeleteMapping(path = "/{idPost}/comments/{idComment}/subcomments/{idSubCmt}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void deleteSubComment(@PathVariable Long idSubCmt) {
-        commentService.deleteSubCmt(idSubCmt);
-    }
-}
-
-record ResponseComment<T>(List<T> comments, Long limit) {
 }

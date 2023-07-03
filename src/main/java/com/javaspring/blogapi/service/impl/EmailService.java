@@ -14,7 +14,7 @@ import java.util.Random;
 public class EmailService {
     @Autowired
     private JavaMailSender javaMailSender;
-    @Value("${domain.name}")
+    @Value("${domain.name.backend}")
     private String domainUrl;
 
     public void sendMail(String toEmail,String verifyCode) throws MessagingException {
