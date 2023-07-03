@@ -12,6 +12,7 @@ import com.javaspring.blogapi.repository.UserRepository;
 import com.javaspring.blogapi.service.PostInterface;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,7 +35,7 @@ public class PostService implements PostInterface {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private IsUserOrIsAdmin  userDetailsJwt = new IsUserOrIsAdmin();
+    private IsUserOrIsAdmin userDetailsJwt = new IsUserOrIsAdmin();
     @Autowired
     private FilesService filesService;
 
@@ -52,9 +53,10 @@ public class PostService implements PostInterface {
             if (postRepository.existsByTitle(newPostDTO.getTitle()))
                 throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
             // * Kiểm tra xem file hợp lệ không
-            if(!(filesService.notEmpty(file) && filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0],5))){}
+            if (!(filesService.notEmpty(file) && filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
+            }
             // * 2 Lưu ảnh mới
-            newImageName= new Date().getTime() + file[0].getOriginalFilename();
+            newImageName = new Date().getTime() + file[0].getOriginalFilename();
             filesService.moveImageToFolder(file[0], newImageName);
             newPostDTO.setThumbnail(newImageName);
             // * Chuyển dto sang entity
@@ -72,17 +74,16 @@ public class PostService implements PostInterface {
 //                throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
             // * 1 Lấy thumbnail cũ
             oldImageName = oldPostEntity.getThumbnail();
-            if(!(file == null || file.length == 0))
-            {
-                if(!(filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0],5))){}
+            if (!(file == null || file.length == 0)) {
+                if (!(filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
+                }
                 // * cập nhật có kèm ảnh
                 updateWithImage = true;
                 // * 2 Lưu ảnh mới
-                newImageName= new Date().getTime() + file[0].getOriginalFilename();
+                newImageName = new Date().getTime() + file[0].getOriginalFilename();
                 filesService.moveImageToFolder(file[0], newImageName);
                 newPostDTO.setThumbnail(newImageName);
-            }
-            else {
+            } else {
                 newPostDTO.setThumbnail(oldImageName);
             }
             // * Đè Post mới sang post cũ
@@ -101,23 +102,40 @@ public class PostService implements PostInterface {
         return dto;
     }
 
+    @Transactional(rollbackOn = Exception.class)
     @Override
     public void deletePosts(Long[] ids) {
-        userDetailsJwt.getUserAndIsAdmin();
-        for (Long id : ids) {
+        try {
+            userDetailsJwt.getUserAndIsAdmin();
+            for (Long id : ids) {
+                PostEntity post = postRepository.findById(id).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + id));
+                String oldAvatar = post.getThumbnail();
+                if (!(userDetailsJwt.getUserEntity().equals(post.getUser()) || userDetailsJwt.isAdmin()))
+                    throw new CustomException.UnauthorizedException("Không có quyền xóa bài đăng " + id);
+                postRepository.deleteById(id);
+                filesService.deleteImageFromFolder(oldAvatar);
+            }
+        } catch (IOException e) {
+            System.out.println("Xóa ảnh không thành công");
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Transactional(rollbackOn = Exception.class)
+    @Override
+    public void deletePost(Long id) {
+        try {
+            userDetailsJwt.getUserAndIsAdmin();
             PostEntity post = postRepository.findById(id).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + id));
+            String oldAvatar = post.getThumbnail();
             if (!(userDetailsJwt.getUserEntity().equals(post.getUser()) || userDetailsJwt.isAdmin()))
                 throw new CustomException.UnauthorizedException("Không có quyền xóa bài đăng " + id);
             postRepository.deleteById(id);
+            filesService.deleteImageFromFolder(oldAvatar);
+        } catch (IOException e) {
+            System.out.println("Xóa ảnh không thành công");
+            throw new RuntimeException(e);
         }
-    }
-    @Override
-    public void deletePost(Long id) {
-        userDetailsJwt.getUserAndIsAdmin();
-        PostEntity post = postRepository.findById(id).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + id));
-        if (!(userDetailsJwt.getUserEntity().equals(post.getUser()) || userDetailsJwt.isAdmin()))
-            throw new CustomException.UnauthorizedException("Không có quyền xóa bài đăng " + id);
-        postRepository.deleteById(id);
     }
 
     @Override
@@ -133,6 +151,7 @@ public class PostService implements PostInterface {
             postDTOlist.add(postConverter.ConverterPostToPostDTO(item));
         return postDTOlist;
     }
+
 
     @Override
     public PostDTO findById(Long idPost) {

@@ -58,6 +58,9 @@ public class AuthController {
     @Value("${github.redirect.uri}")
     private String githubRedirectUri;
 
+    @Value("${domain.name.frontend}")
+    private String urlFrontEnd;
+
     @Operation(
             description = "Đăng nhập bằng username/password",
             responses = {
@@ -74,7 +77,7 @@ public class AuthController {
     }
 
     @Operation(
-            description = "Đăng ký",
+            description = "Đăng ký, cần xác thực email để kích hoạt tài khoản",
             responses = {
                     @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserDTO.class))), responseCode = "200")})
     @ApiResponses(
@@ -140,7 +143,7 @@ public class AuthController {
             if (userInfoGoogle != null && userInfoGoogle.isVerified_email()) {
                 // * 3 Redirect người dùng về trang login với parameter access_token
                 String access_token = userService.loginOAuth(userInfoGoogle);
-                String redirectUrl = "http://localhost:3000/login/oauth?access_token=" + access_token;
+                String redirectUrl = urlFrontEnd + "/login/oauth?access_token=" + access_token;
                 return ResponseEntity.status(HttpStatus.FOUND)
                         .header(HttpHeaders.LOCATION, redirectUrl)
                         .build();
@@ -197,7 +200,7 @@ public class AuthController {
             if (userInfoGitHub != null) {
                 // * 3 Redirect người dùng về trang login với parameter access_token
                 String access_token = userService.loginOAuth(userInfoGitHub);
-                String redirectUrl = "http://localhost:3000/login/oauth?access_token=" + access_token;
+                String redirectUrl = urlFrontEnd + "/login/oauth?access_token=" + access_token;
                 return ResponseEntity.status(HttpStatus.FOUND)
                         .header(HttpHeaders.LOCATION, redirectUrl)
                         .build();
@@ -218,6 +221,15 @@ public class AuthController {
 //        emailService.sendMail(email,"123");
 //    }
 
+    @Operation(
+            description = "Verify email",
+            responses = {
+                    @ApiResponse(content = @Content(), responseCode = "200")})
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Thành công"),
+                    @ApiResponse(responseCode = "400", description = "Code không chính xác", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
+            })
     @GetMapping(path = "/verify-email")
     public ResponseEntity<Object> verifyEmail(@RequestParam String verify_code) {
         userService.verifyCode(verify_code);
@@ -225,7 +237,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, redirectUrl)
                 .build();
-//        return "Xác thực thành công";
     }
 }
 
