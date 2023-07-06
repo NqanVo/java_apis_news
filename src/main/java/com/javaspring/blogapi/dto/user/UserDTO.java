@@ -3,6 +3,7 @@ package com.javaspring.blogapi.dto.user;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.javaspring.blogapi.dto.BaseDTO;
 import com.javaspring.blogapi.model.RoleEntity;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 
 import java.util.ArrayList;
@@ -26,12 +27,33 @@ public class UserDTO extends BaseDTO {
     @Size(min = 5, max = 50, message = "Tối thiểu là 5 ký tự và tối đa là 50")
     @Pattern(regexp = "(?=^[^\\s].*)(?=.*[^\\s]$).*", message = "Không được để thừa dấu cách đầu/cuối đoạn")
     private String fullName;
+    @NotNull(message = "Số điện thoại không được trống")
+    @NotBlank(message = "Số điện thoại không được trống")
+    @Size(min = 7, max = 15, message = "Tối thiểu là 7 ký tự và tối đa là 15")
+    @Pattern(regexp = "\\d+", message = "Chỉ được nhập số")
+    private String phone;
+    @NotNull(message = "Địa chỉ không được trống")
+    @NotBlank(message = "Địa chỉ không được trống")
+    @Size(min = 5, max = 50, message = "Tối thiểu là 5 ký tự và tối đa là 100")
+    @Pattern(regexp = "(?=^[^\\s].*)(?=.*[^\\s]$).*", message = "Không được để thừa dấu cách đầu/cuối đoạn")
+    @Column
+    private String address;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String avatar;
+    //    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+//    private Integer status;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Integer status;
+    private boolean enabled;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private List<String> nameRoles = new ArrayList<>();
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public List<String> getNameRoles() {
         return nameRoles;
@@ -73,11 +95,27 @@ public class UserDTO extends BaseDTO {
         this.avatar = avatar;
     }
 
-    public Integer getStatus() {
-        return status;
+//    public Integer getStatus() {
+//        return status;
+//    }
+//
+//    public void setStatus(Integer status) {
+//        this.status = status;
+//    }
+
+    public String getPhone() {
+        return phone;
     }
 
-    public void setStatus(Integer status) {
-        this.status = status;
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 }

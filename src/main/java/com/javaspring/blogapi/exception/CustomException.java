@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -76,6 +77,15 @@ public class CustomException extends ResponseEntityExceptionHandler {
                 "Không tìm thấy ảnh",
                 request.getDescription(false));
         return new ResponseEntity<ErrorDTO>(errorDetails, HttpStatus.NOT_FOUND);
+    }
+    // * Xử lý lỗi đối số không phù hợp
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public final ResponseEntity<ErrorDTO> handleTypeMismatchException(Exception ex, WebRequest request) throws Exception {
+        ErrorDTO errorDetails = new ErrorDTO(
+                LocalDateTime.now(),
+                "Tham số không đúng định dạng",
+                request.getDescription(false));
+        return new ResponseEntity<ErrorDTO>(errorDetails, HttpStatus.BAD_REQUEST);
     }
     // * Xử lý lỗi về yêu cầu người dùng
     @ExceptionHandler(BadRequestException.class)

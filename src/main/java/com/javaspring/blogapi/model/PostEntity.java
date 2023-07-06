@@ -9,7 +9,6 @@ import java.util.List;
 @Entity(name = "tbl_posts")
 @Table(name = "tbl_posts")
 public class PostEntity extends BaseModel {
-
     @Column
     private String title;
     @Column
