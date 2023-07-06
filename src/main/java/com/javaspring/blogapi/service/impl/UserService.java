@@ -5,17 +5,23 @@ import com.javaspring.blogapi.config.oauth.ResponseUserInfoGitHubOAuth;
 import com.javaspring.blogapi.config.oauth.ResponseUserInfoGoogleOAuth;
 import com.javaspring.blogapi.converter.UserConverter;
 import com.javaspring.blogapi.converter.UserInfoOAuthConverter;
+import com.javaspring.blogapi.dto.PostDTO;
 import com.javaspring.blogapi.dto.auth.AuthLoginDTO;
 import com.javaspring.blogapi.dto.user.UserUpdatePasswordDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
 
 import com.javaspring.blogapi.dto.user.UserUpdateDTO;
 import com.javaspring.blogapi.exception.CustomException;
+import com.javaspring.blogapi.model.CategoryEntity;
+import com.javaspring.blogapi.model.PostEntity;
 import com.javaspring.blogapi.model.RoleEntity;
 import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.repository.UserRepository;
 import com.javaspring.blogapi.service.UserInterface;
 import jakarta.mail.MessagingException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -177,6 +183,50 @@ public class UserService implements UserInterface {
         return listDTO;
     }
 
+    private final EntityManager entityManager;
+
+    public UserService(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
+
+    public ResponseFilter<UserDTO> findByFilters(Pageable pageable, String fullname, Long phone, Boolean enabled, Date createFrom, Date createTo) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+
+        CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
+        CriteriaQuery<UserEntity> filterQuery = criteriaBuilder.createQuery(UserEntity.class);
+
+        // Select count(*) from tbl_posts
+        Root<UserEntity> countRoot = countQuery.from(UserEntity.class);
+        countQuery.select(criteriaBuilder.count(countRoot));
+
+        // Select * from tbl_posts
+        Root<UserEntity> root = filterQuery.from(UserEntity.class);
+        filterQuery.select(root);
+
+        Predicate filterPredicate = buildPredicate(criteriaBuilder, root, fullname, phone, enabled, createFrom, createTo);
+        Predicate countPredicate = buildPredicate(criteriaBuilder, countRoot, fullname, phone, enabled, createFrom, createTo);
+
+        // * Truy vấn theo điều kiện, sắp xếp theo ngày tạo
+        filterQuery.where(filterPredicate).orderBy(criteriaBuilder.asc(root.get("createdDate")));
+        // * Truy vấn tổng kết quả
+        countQuery.where(countPredicate);
+
+        // * Phân trang
+        TypedQuery<UserEntity> typedQuery = entityManager.createQuery(filterQuery);
+        typedQuery.setFirstResult(pageable.getPageNumber() * pageable.getPageSize());
+        typedQuery.setMaxResults(pageable.getPageSize());
+        // * Đếm
+        TypedQuery<Long> countTypedQuery = entityManager.createQuery(countQuery);
+
+        // * Thực hiện truy vấn
+        List<UserEntity> userEntities = typedQuery.getResultList();
+        Long totalResults = countTypedQuery.getSingleResult();
+
+        List<UserDTO> userDTOS = userEntities.stream().map(userEntity -> userConverter.UserToUserDTO(userEntity)).toList();
+
+        return new ResponseFilter<UserDTO>(userDTOS, totalResults);
+    }
+
     @Override
     public Long countItems() {
         return userRepository.count();
@@ -219,6 +269,32 @@ public class UserService implements UserInterface {
             userDTO = userConverter.UserToUserDTO(userEntity);
         }
         return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
+    }
+
+
+    private Predicate buildPredicate(CriteriaBuilder criteriaBuilder, Root<UserEntity> root, String fullname, Long phone, Boolean enabled, Date createFrom, Date createTo) {
+        // Danh sách điều kiện nếu có
+        List<Predicate> predicateList = new ArrayList<>();
+
+        if (fullname != null && !fullname.equals("")) {
+            Predicate fullnamePredicate = criteriaBuilder.like(root.get("fullName"), "%" + fullname + "%");
+            predicateList.add(fullnamePredicate);
+        }
+        if (phone != null) {
+            Predicate phonePredicate = criteriaBuilder.equal(root.get("phone"), phone);
+            predicateList.add(phonePredicate);
+        }
+        if (enabled != null) {
+            Predicate enabledPredicate = criteriaBuilder.equal(root.get("enabled"), enabled);
+            predicateList.add(enabledPredicate);
+        }
+
+        if (createFrom != null && createTo != null) {
+            Predicate createDatePredicate = criteriaBuilder.between(root.get("createdDate"), createFrom, createTo);
+            predicateList.add(createDatePredicate);
+        }
+        // * Kết hợp các điều kiện
+        return criteriaBuilder.and(predicateList.toArray(new Predicate[0]));
     }
 }
 

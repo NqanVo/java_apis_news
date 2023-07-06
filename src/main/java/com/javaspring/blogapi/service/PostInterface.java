@@ -10,7 +10,7 @@ import java.util.List;
 public interface PostInterface {
     PostDTO save(PostDTO postDTO, MultipartFile[] file) throws IOException;
     void deletePosts(Long[] ids);
-    List<PostDTO> findAll(Pageable pageable);
+    List<PostDTO> findAll(Pageable pageable,String username, String category, String title);
     PostDTO findById(Long id);
     void deletePost(Long id);
     int countItems();

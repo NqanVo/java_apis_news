@@ -23,6 +23,10 @@ public class UserEntity extends BaseModel implements UserDetails {
     @Column
     private String avatar;
     @Column
+    private String phone;
+    @Column
+    private String address;
+    @Column
     private Integer status;
     @Column
     private String verifyCodeEmail;
@@ -51,6 +55,22 @@ public class UserEntity extends BaseModel implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roleEntities.stream().map(role -> new SimpleGrantedAuthority(role.getCode())).collect(Collectors.toList());
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override

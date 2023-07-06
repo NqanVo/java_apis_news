@@ -6,13 +6,16 @@ import com.javaspring.blogapi.dto.PostDTO;
 import com.javaspring.blogapi.exception.CustomException;
 import com.javaspring.blogapi.model.CategoryEntity;
 import com.javaspring.blogapi.model.PostEntity;
+import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.repository.CategoryRepository;
 import com.javaspring.blogapi.repository.PostRepository;
 import com.javaspring.blogapi.repository.UserRepository;
 import com.javaspring.blogapi.service.PostInterface;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -35,9 +39,15 @@ public class PostService implements PostInterface {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private IsUserOrIsAdmin userDetailsJwt = new IsUserOrIsAdmin();
+    private final IsUserOrIsAdmin userDetailsJwt = new IsUserOrIsAdmin();
     @Autowired
     private FilesService filesService;
+
+    private final EntityManager entityManager;
+
+    public PostService(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Override
     @Transactional(rollbackOn = Exception.class)
@@ -144,7 +154,7 @@ public class PostService implements PostInterface {
     }
 
     @Override
-    public List<PostDTO> findAll(Pageable pageable) {
+    public List<PostDTO> findAll(Pageable pageable, String username, String category, String title) {
         List<PostDTO> postDTOlist = new ArrayList<>();
         List<PostEntity> postEntityList = postRepository.findAll(pageable).getContent();
         for (PostEntity item : postEntityList)
@@ -152,6 +162,72 @@ public class PostService implements PostInterface {
         return postDTOlist;
     }
 
+    public ResponseFilter<PostDTO> findByFilter(Pageable pageable, String username, String categoryCode, String title, Date createFrom, Date createTo) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+
+        CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
+        CriteriaQuery<PostEntity> filterQuery = criteriaBuilder.createQuery(PostEntity.class);
+
+        // Select count(*) from tbl_posts
+        Root<PostEntity> countRoot = countQuery.from(PostEntity.class);
+        countQuery.select(criteriaBuilder.count(countRoot));
+
+        // Select * from tbl_posts
+        Root<PostEntity> root = filterQuery.from(PostEntity.class);
+        filterQuery.select(root);
+
+        Predicate filterPredicate = buildPredicate(criteriaBuilder, root, username, categoryCode, title, createFrom, createTo);
+        Predicate countPredicate = buildPredicate(criteriaBuilder, countRoot, username, categoryCode, title, createFrom, createTo);
+
+        // * Truy vấn theo điều kiện, sắp xếp theo ngày tạo
+        filterQuery.where(filterPredicate).orderBy(criteriaBuilder.desc(root.get("createdDate")));
+        // * Truy vấn tổng kết quả
+        countQuery.where(countPredicate);
+
+        // * Phân trang
+        TypedQuery<PostEntity> typedQuery = entityManager.createQuery(filterQuery);
+        typedQuery.setFirstResult(pageable.getPageNumber() * pageable.getPageSize());
+        typedQuery.setMaxResults(pageable.getPageSize());
+        // * Đếm
+        TypedQuery<Long> countTypedQuery = entityManager.createQuery(countQuery);
+
+        // * Thực hiện truy vấn
+        List<PostEntity> postEntities = typedQuery.getResultList();
+        Long totalResults = countTypedQuery.getSingleResult();
+
+        List<PostDTO> postDTOS = postEntities.stream().map(postEntity -> postConverter.ConverterPostToPostDTO(postEntity)).toList();
+
+        return new ResponseFilter<PostDTO>(postDTOS, totalResults);
+    }
+
+    private Predicate buildPredicate(CriteriaBuilder criteriaBuilder, Root<PostEntity> root, String username, String categoryCode, String title, Date createFrom, Date createTo) {
+        // Danh sách điều kiện nếu có
+        List<Predicate> predicateList = new ArrayList<>();
+
+        if (title != null && !title.equals("")) {
+            Predicate titlePredicate = criteriaBuilder.like(root.get("title"), "%" + title + "%");
+            predicateList.add(titlePredicate);
+        }
+
+        if (username != null && !username.equals("")) {
+            Join<PostEntity, UserEntity> userJoin = root.join("userEntity");
+            Predicate usernamePredicate = criteriaBuilder.like(userJoin.get("username"), "%" + username + "%");
+            predicateList.add(usernamePredicate);
+        }
+
+        if (categoryCode != null && !categoryCode.equals("")) {
+            Join<PostEntity, CategoryEntity> categoryJoin = root.join("categoryEntity");
+            Predicate categoryCodePredicate = criteriaBuilder.equal(categoryJoin.get("code"), categoryCode);
+            predicateList.add(categoryCodePredicate);
+        }
+
+        if (createFrom != null && createTo != null) {
+            Predicate createDatePredicate = criteriaBuilder.between(root.get("createdDate"), createFrom, createTo);
+            predicateList.add(createDatePredicate);
+        }
+        // * Kết hợp các điều kiện
+        return criteriaBuilder.and(predicateList.toArray(new Predicate[0]));
+    }
 
     @Override
     public PostDTO findById(Long idPost) {
@@ -162,3 +238,6 @@ public class PostService implements PostInterface {
         return postConverter.ConverterPostToPostDTO(post.get());
     }
 }
+
+
+;
