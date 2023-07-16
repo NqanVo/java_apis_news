@@ -5,10 +5,19 @@ import com.javaspring.blogapi.dto.BaseDTO;
 import com.javaspring.blogapi.model.RoleEntity;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDTO extends BaseDTO {
     @NotNull(message = "Tài khoản không được trống")
     @NotBlank(message = "Mật khẩu không được trống")
@@ -47,75 +56,15 @@ public class UserDTO extends BaseDTO {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private List<String> nameRoles = new ArrayList<>();
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public List<String> getNameRoles() {
-        return nameRoles;
-    }
-
-    public void setNameRoles(List<String> nameRoles) {
-        this.nameRoles = nameRoles;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String userName) {
-        this.username = userName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
+    public UserDTO(Long id, String createdBy, Date createdDate, String updatedBy, Date updatedDate, @NotNull(message = "Tài khoản không được trống") String username, @NotNull(message = "Mật khẩu không được trống") String password, @NotNull(message = "Tên không được trống") String fullName, @NotNull(message = "Số điện thoại không được trống") String phone, @NotNull(message = "Địa chỉ không được trống") String address, String avatar, boolean enabled, List<String> nameRoles) {
+        super(id, createdBy, createdDate, updatedBy, updatedDate);
+        this.username = username;
         this.password = password;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
         this.fullName = fullName;
-    }
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
-//    public Integer getStatus() {
-//        return status;
-//    }
-//
-//    public void setStatus(Integer status) {
-//        this.status = status;
-//    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
         this.phone = phone;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
         this.address = address;
+        this.avatar = avatar;
+        this.enabled = enabled;
+        this.nameRoles = nameRoles;
     }
 }

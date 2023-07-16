@@ -1,9 +1,15 @@
 package com.javaspring.blogapi.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity(name = "tbl_sub_comment")
 @Table(name = "tbl_sub_comment")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class SubCommentEntity extends BaseModel{
     @Column(nullable = false)
     private String comment;
@@ -14,27 +20,4 @@ public class SubCommentEntity extends BaseModel{
     @JoinColumn(name = "id_user")
     private UserEntity userEntity;
 
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public CommentEntity getCommentEntity() {
-        return commentEntity;
-    }
-
-    public void setCommentEntity(CommentEntity commentEntity) {
-        this.commentEntity = commentEntity;
-    }
-
-    public UserEntity getUserEntity() {
-        return userEntity;
-    }
-
-    public void setUserEntity(UserEntity userEntity) {
-        this.userEntity = userEntity;
-    }
 }

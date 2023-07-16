@@ -56,7 +56,7 @@ public class initDatabase {
             userEntity.setFullName("Tran Van Admin");
             userEntity.setPassword(passwordEncoder.encode("123Abc"));
             roleEntityAdmin = roleService.findByName("ROLE_ADMIN");
-            userEntity.getRoles().add(roleEntityAdmin);
+            userEntity.getRoleEntities().add(roleEntityAdmin);
             userEntity = userRepository.save(userEntity);
         }
     }

@@ -50,7 +50,7 @@ public class IsUserOrIsAdmin {
         // * Kiểm tra xem phải admin không
         setUserEntity(userRepository.findByUsername(username));
         List<String> roles = new ArrayList<>();
-        for (RoleEntity role : userEntity.getRoles())
+        for (RoleEntity role : userEntity.getRoleEntities())
             roles.add(role.getCode());
         setAdmin(roles.contains("ROLE_ADMIN"));
 

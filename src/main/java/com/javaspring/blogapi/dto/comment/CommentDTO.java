@@ -12,10 +12,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class CommentDTO extends BaseDTO {
     @NotNull(message = "Bình luận không được trống")
     @NotBlank(message = "Bình luận không được trống")
@@ -28,43 +34,4 @@ public class CommentDTO extends BaseDTO {
     private PostEntity postEntity;
     @JsonIgnore
     private UserEntity userEntity;
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public Boolean getExistsSubComment() {
-        return existsSubComment;
-    }
-
-    public void setExistsSubComment(Boolean existsSubComment) {
-        this.existsSubComment = existsSubComment;
-    }
-
-    public PostEntity getPostEntity() {
-        return postEntity;
-    }
-
-    public void setPostEntity(PostEntity postEntity) {
-        this.postEntity = postEntity;
-    }
-
-    public UserEntity getUserEntity() {
-        return userEntity;
-    }
-
-    public void setUserEntity(UserEntity userEntity) {
-        this.userEntity = userEntity;
-    }
-//    public String getUsername() {
-//        return username;
-//    }
-//
-//    public void setUsername(String username) {
-//        this.username = username;
-//    }
 }

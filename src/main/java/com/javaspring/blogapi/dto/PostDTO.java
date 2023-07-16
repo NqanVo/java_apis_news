@@ -7,12 +7,18 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PostDTO extends BaseDTO<PostDTO> {
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+public class PostDTO extends BaseDTO {
     @NotNull(message = "Tiêu đề không được trống_N")
     @NotBlank(message = "Tiêu đề không được trống_B")
     @Size(min = 10, max = 300, message = "Tối thiểu là 10 ký tự và tối đa là 300")
@@ -33,67 +39,8 @@ public class PostDTO extends BaseDTO<PostDTO> {
     @Pattern(regexp = "^[a-z]+(-[a-z]+)*$", message = "Định dạng mã danh mục không hợp lệ")
     private String categoryCode;
 
-//    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-//    @NotNull(message = "Ảnh bài viết không được trống")
-//    private MultipartFile[] file;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String thumbnail;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long totalComments;
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getShortDesc() {
-        return shortDesc;
-    }
-
-    public void setShortDesc(String shortDesc) {
-        this.shortDesc = shortDesc;
-    }
-
-    public String getCategoryCode() {
-        return categoryCode;
-    }
-
-    public void setCategoryCode(String categoryCode) {
-        this.categoryCode = categoryCode;
-    }
-
-    public String getThumbnail() {
-        return thumbnail;
-    }
-
-    public void setThumbnail(String thumbnail) {
-        this.thumbnail = thumbnail;
-    }
-
-//    public MultipartFile[] getFile() {
-//        return file;
-//    }
-//
-//    public void setFile(MultipartFile[] thumbnailFile) {
-//        this.file = thumbnailFile;
-//    }
-
-    public Long getTotalComments() {
-        return totalComments;
-    }
-
-    public void setTotalComments(Long totalComments) {
-        this.totalComments = totalComments;
-    }
 }

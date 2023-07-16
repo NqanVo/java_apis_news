@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
-// extends UserDetailsService
 public interface UserInterface   {
     UserDTO save(UserDTO userDTO, TypesLogin type) throws MessagingException;
     @Transactional(rollbackOn = Exception.class)

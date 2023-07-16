@@ -9,7 +9,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class SubCommentDTO extends BaseDTO {
     @NotNull(message = "Bình luận không được trống")
     @NotBlank(message = "Bình luận không được trống")
@@ -25,36 +31,4 @@ public class SubCommentDTO extends BaseDTO {
     private Boolean existsSubComment = false;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long idPrimaryComment;
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public CommentEntity getCommentEntity() {
-        return commentEntity;
-    }
-
-    public void setCommentEntity(CommentEntity commentEntity) {
-        this.commentEntity = commentEntity;
-    }
-
-    public UserEntity getUserEntity() {
-        return userEntity;
-    }
-
-    public void setUserEntity(UserEntity userEntity) {
-        this.userEntity = userEntity;
-    }
-
-    public Long getIdPrimaryComment() {
-        return idPrimaryComment;
-    }
-
-    public void setIdPrimaryComment(Long idPrimaryComment) {
-        this.idPrimaryComment = idPrimaryComment;
-    }
 }

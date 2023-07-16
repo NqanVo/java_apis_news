@@ -26,7 +26,7 @@ public class UserConverter {
 
         BeanUtils.copyProperties(userEntity, userDTO);
         List<String> nameRoles = new ArrayList<>();
-        for (RoleEntity role : userEntity.getRoles())
+        for (RoleEntity role : userEntity.getRoleEntities())
             nameRoles.add(role.getName());
         userDTO.setNameRoles(nameRoles);
         return userDTO;
