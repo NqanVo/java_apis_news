@@ -6,8 +6,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @JsonFilter("CategoryFilter")
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
 public class CategoryDTO extends BaseDTO{
     @NotNull(message = "Tên danh mục không được trống")
     @NotBlank(message = "Tên danh mục không được trống")
@@ -17,19 +23,19 @@ public class CategoryDTO extends BaseDTO{
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String code;
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
+//    public String getName() {
+//        return name;
+//    }
+//
+//    public void setName(String name) {
+//        this.name = name;
+//    }
+//
+//    public String getCode() {
+//        return code;
+//    }
+//
+//    public void setCode(String code) {
+//        this.code = code;
+//    }
 }

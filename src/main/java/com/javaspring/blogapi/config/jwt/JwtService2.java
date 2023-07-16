@@ -28,7 +28,7 @@ public class JwtService2 {
         return Jwts.builder()
                 .setSubject(userEntity.getUsername())
                 .setIssuer("SERVER")
-                .claim("roles", userEntity.getRoles().toString())
+                .claim("roles", userEntity.getRoleEntities().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRE_DURATION))
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)

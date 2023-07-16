@@ -54,7 +54,7 @@ public class UserController {
             @RequestParam(required = false) Long currentPage,
             @RequestParam(required = false) Long limit,
             @RequestParam(required = false) String fullname,
-            @RequestParam(required = false) Long phone,
+            @RequestParam(required = false) String phone,
             @RequestParam(required = false) Boolean enabled,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date createFrom,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date createTo) {

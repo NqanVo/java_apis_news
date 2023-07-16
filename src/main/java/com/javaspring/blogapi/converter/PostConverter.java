@@ -26,7 +26,7 @@ public class PostConverter {
         PostDTO postDTO = new PostDTO();
 
         BeanUtils.copyProperties(postEntity, postDTO);
-        postDTO.setCategoryCode(categoryService.findByCode(postEntity.getCategory().getCode()).getCode());
+        postDTO.setCategoryCode(categoryService.findByCode(postEntity.getCategoryEntity().getCode()).getCode());
         postDTO.setTotalComments(postEntity.getCommentEntityList().stream().count());
         return postDTO;
     }
@@ -34,7 +34,6 @@ public class PostConverter {
     public PostEntity ConverterNewPostDTOToOldPost(PostDTO newPostDTO, PostEntity oldPostEntity) {
         String createBy = oldPostEntity.getCreatedBy();
         Date createDate = oldPostEntity.getCreatedDate();
-
         BeanUtils.copyProperties(newPostDTO, oldPostEntity);
         oldPostEntity.setCreatedBy(createBy);
         oldPostEntity.setCreatedDate(createDate);

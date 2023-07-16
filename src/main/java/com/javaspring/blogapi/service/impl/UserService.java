@@ -5,15 +5,12 @@ import com.javaspring.blogapi.config.oauth.ResponseUserInfoGitHubOAuth;
 import com.javaspring.blogapi.config.oauth.ResponseUserInfoGoogleOAuth;
 import com.javaspring.blogapi.converter.UserConverter;
 import com.javaspring.blogapi.converter.UserInfoOAuthConverter;
-import com.javaspring.blogapi.dto.PostDTO;
 import com.javaspring.blogapi.dto.auth.AuthLoginDTO;
 import com.javaspring.blogapi.dto.user.UserUpdatePasswordDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
 
 import com.javaspring.blogapi.dto.user.UserUpdateDTO;
 import com.javaspring.blogapi.exception.CustomException;
-import com.javaspring.blogapi.model.CategoryEntity;
-import com.javaspring.blogapi.model.PostEntity;
 import com.javaspring.blogapi.model.RoleEntity;
 import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.repository.UserRepository;
@@ -71,7 +68,7 @@ public class UserService implements UserInterface {
             String verifyCodeEmail = emailService.generateRandomString(50);
             newUserEntity = userConverter.UserDTOToUser(userDTO);
             newUserEntity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-            newUserEntity.getRoles().add(roleEntityUser);
+            newUserEntity.getRoleEntities().add(roleEntityUser);
             if (type.equals(TypesLogin.OAUTH)) {
                 newUserEntity.setStatus(1);
                 newUserEntity.setEnabled(true);
@@ -170,7 +167,7 @@ public class UserService implements UserInterface {
             if (roleEntity != null)
                 roleEntityList.add(roleEntity);
         }
-        userEntity.setRoles(roleEntityList);
+        userEntity.setRoleEntities(roleEntityList);
         userRepository.save(userEntity);
     }
 
@@ -181,50 +178,6 @@ public class UserService implements UserInterface {
         for (UserEntity item : list)
             listDTO.add(userConverter.UserToUserDTO(item));
         return listDTO;
-    }
-
-    private final EntityManager entityManager;
-
-    public UserService(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
-
-    public ResponseFilter<UserDTO> findByFilters(Pageable pageable, String fullname, Long phone, Boolean enabled, Date createFrom, Date createTo) {
-        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-
-        CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
-        CriteriaQuery<UserEntity> filterQuery = criteriaBuilder.createQuery(UserEntity.class);
-
-        // Select count(*) from tbl_posts
-        Root<UserEntity> countRoot = countQuery.from(UserEntity.class);
-        countQuery.select(criteriaBuilder.count(countRoot));
-
-        // Select * from tbl_posts
-        Root<UserEntity> root = filterQuery.from(UserEntity.class);
-        filterQuery.select(root);
-
-        Predicate filterPredicate = buildPredicate(criteriaBuilder, root, fullname, phone, enabled, createFrom, createTo);
-        Predicate countPredicate = buildPredicate(criteriaBuilder, countRoot, fullname, phone, enabled, createFrom, createTo);
-
-        // * Truy vấn theo điều kiện, sắp xếp theo ngày tạo
-        filterQuery.where(filterPredicate).orderBy(criteriaBuilder.asc(root.get("createdDate")));
-        // * Truy vấn tổng kết quả
-        countQuery.where(countPredicate);
-
-        // * Phân trang
-        TypedQuery<UserEntity> typedQuery = entityManager.createQuery(filterQuery);
-        typedQuery.setFirstResult(pageable.getPageNumber() * pageable.getPageSize());
-        typedQuery.setMaxResults(pageable.getPageSize());
-        // * Đếm
-        TypedQuery<Long> countTypedQuery = entityManager.createQuery(countQuery);
-
-        // * Thực hiện truy vấn
-        List<UserEntity> userEntities = typedQuery.getResultList();
-        Long totalResults = countTypedQuery.getSingleResult();
-
-        List<UserDTO> userDTOS = userEntities.stream().map(userEntity -> userConverter.UserToUserDTO(userEntity)).toList();
-
-        return new ResponseFilter<UserDTO>(userDTOS, totalResults);
     }
 
     @Override
@@ -271,8 +224,47 @@ public class UserService implements UserInterface {
         return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
     }
 
+    @Autowired
+    private EntityManager entityManager;
 
-    private Predicate buildPredicate(CriteriaBuilder criteriaBuilder, Root<UserEntity> root, String fullname, Long phone, Boolean enabled, Date createFrom, Date createTo) {
+    public ResponseFilter<UserDTO> findByFilters(Pageable pageable, String fullname, String phone, Boolean enabled, Date createFrom, Date createTo) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+
+        CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
+        CriteriaQuery<UserEntity> filterQuery = criteriaBuilder.createQuery(UserEntity.class);
+
+        // Select count(*) from tbl_posts
+        Root<UserEntity> countRoot = countQuery.from(UserEntity.class);
+        countQuery.select(criteriaBuilder.count(countRoot));
+
+        // Select * from tbl_posts
+        Root<UserEntity> root = filterQuery.from(UserEntity.class);
+        filterQuery.select(root);
+
+        Predicate filterPredicate = buildPredicate(criteriaBuilder, root, fullname, phone, enabled, createFrom, createTo);
+        Predicate countPredicate = buildPredicate(criteriaBuilder, countRoot, fullname, phone, enabled, createFrom, createTo);
+
+        // * Truy vấn theo điều kiện, sắp xếp theo ngày tạo
+        filterQuery.where(filterPredicate).orderBy(criteriaBuilder.asc(root.get("createdDate")));
+        // * Truy vấn tổng kết quả
+        countQuery.where(countPredicate);
+
+        // * Phân trang
+        TypedQuery<UserEntity> typedQuery = entityManager.createQuery(filterQuery);
+        typedQuery.setFirstResult(pageable.getPageNumber() * pageable.getPageSize());
+        typedQuery.setMaxResults(pageable.getPageSize());
+        // * Đếm
+        TypedQuery<Long> countTypedQuery = entityManager.createQuery(countQuery);
+
+        // * Thực hiện truy vấn
+        List<UserEntity> userEntities = typedQuery.getResultList();
+        Long totalResults = countTypedQuery.getSingleResult();
+
+        List<UserDTO> userDTOS = userEntities.stream().map(userEntity -> userConverter.UserToUserDTO(userEntity)).toList();
+
+        return new ResponseFilter<UserDTO>(userDTOS, totalResults);
+    }
+    private Predicate buildPredicate(CriteriaBuilder criteriaBuilder, Root<UserEntity> root, String fullname, String phone, Boolean enabled, Date createFrom, Date createTo) {
         // Danh sách điều kiện nếu có
         List<Predicate> predicateList = new ArrayList<>();
 

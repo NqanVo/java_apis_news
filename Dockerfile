@@ -1,15 +1,15 @@
 #
 # Build stage
 #
-FROM maven:3.8.2-jdk-11 AS build
+FROM maven:3.9.3 AS build
 COPY . .
 RUN mvn clean package -DskipTests
 
 #
 # Package stage
 #
-FROM openjdk:11-jdk-slim
-COPY --from=build /target/demo-0.0.1-SNAPSHOT.jar demo.jar
+FROM openjdk:17
+COPY --from=build /target/blog-api-0.0.1-SNAPSHOT.jar blog-api.jar
 # ENV PORT=8080
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","demo.jar"]
+ENTRYPOINT ["java","-jar","blog-api.jar"]

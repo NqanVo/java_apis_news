@@ -71,17 +71,17 @@ public class PostService implements PostInterface {
             newPostDTO.setThumbnail(newImageName);
             // * Chuyển dto sang entity
             newPostEntity = postConverter.ConverterPostDTOToPost(newPostDTO);
-            newPostEntity.setUser(userDetailsJwt.getUserEntity());
+            newPostEntity.setUserEntity(userDetailsJwt.getUserEntity());
         } else {
             // * Tìm post cũ
             PostEntity oldPostEntity = postRepository.findById(newPostDTO.getId())
                     .orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + newPostDTO.getId()));
             // * Kiểm tra xem đúng user hay có quyền admin không
-            if (!(userDetailsJwt.getUserEntity().equals(oldPostEntity.getUser()) || userDetailsJwt.isAdmin()))
+            if (!(userDetailsJwt.getUserEntity().equals(oldPostEntity.getUserEntity()) || userDetailsJwt.isAdmin()))
                 throw new CustomException.UnauthorizedException("Không có quyền chỉnh sửa");
             // * Kiểm tra xem tiêu đề tồn tại chưa
-//            if (postRepository.existsByTitle(newPostDTO.getTitle()))
-//                throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
+            if (postRepository.existsByTitle(newPostDTO.getTitle()))
+                throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
             // * 1 Lấy thumbnail cũ
             oldImageName = oldPostEntity.getThumbnail();
             if (!(file == null || file.length == 0)) {
@@ -99,7 +99,7 @@ public class PostService implements PostInterface {
             // * Đè Post mới sang post cũ
             newPostEntity = postConverter.ConverterNewPostDTOToOldPost(newPostDTO, oldPostEntity);
         }
-        newPostEntity.setCategory(categoryEntity);
+        newPostEntity.setCategoryEntity(categoryEntity);
         // * 3 Lưu post || sửa post cũ
         newPostEntity = postRepository.save(newPostEntity);
         // * Chuyển entity sang dto
@@ -120,7 +120,7 @@ public class PostService implements PostInterface {
             for (Long id : ids) {
                 PostEntity post = postRepository.findById(id).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + id));
                 String oldAvatar = post.getThumbnail();
-                if (!(userDetailsJwt.getUserEntity().equals(post.getUser()) || userDetailsJwt.isAdmin()))
+                if (!(userDetailsJwt.getUserEntity().equals(post.getUserEntity()) || userDetailsJwt.isAdmin()))
                     throw new CustomException.UnauthorizedException("Không có quyền xóa bài đăng " + id);
                 postRepository.deleteById(id);
                 filesService.deleteImageFromFolder(oldAvatar);
@@ -138,7 +138,7 @@ public class PostService implements PostInterface {
             userDetailsJwt.getUserAndIsAdmin();
             PostEntity post = postRepository.findById(id).orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + id));
             String oldAvatar = post.getThumbnail();
-            if (!(userDetailsJwt.getUserEntity().equals(post.getUser()) || userDetailsJwt.isAdmin()))
+            if (!(userDetailsJwt.getUserEntity().equals(post.getUserEntity()) || userDetailsJwt.isAdmin()))
                 throw new CustomException.UnauthorizedException("Không có quyền xóa bài đăng " + id);
             postRepository.deleteById(id);
             filesService.deleteImageFromFolder(oldAvatar);
@@ -238,6 +238,3 @@ public class PostService implements PostInterface {
         return postConverter.ConverterPostToPostDTO(post.get());
     }
 }
-
-
-;

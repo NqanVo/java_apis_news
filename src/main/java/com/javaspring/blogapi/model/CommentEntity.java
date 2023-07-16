@@ -1,12 +1,18 @@
 package com.javaspring.blogapi.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity(name = "tbl_comment")
 @Table(name = "tbl_comment")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class CommentEntity extends BaseModel{
     @Column(nullable = false)
     private String comment;
@@ -19,37 +25,4 @@ public class CommentEntity extends BaseModel{
 
     @OneToMany(mappedBy = "commentEntity",cascade = CascadeType.ALL)
     private List<SubCommentEntity> subCommentEntityList = new ArrayList<>();
-
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public PostEntity getPostEntity() {
-        return postEntity;
-    }
-
-    public void setPostEntity(PostEntity postEntity) {
-        this.postEntity = postEntity;
-    }
-
-    public UserEntity getUserEntity() {
-        return userEntity;
-    }
-
-    public void setUserEntity(UserEntity userEntity) {
-        this.userEntity = userEntity;
-    }
-
-    public List<SubCommentEntity> getSubCommentEntityList() {
-        return subCommentEntityList;
-    }
-
-    public void setSubCommentEntityList(List<SubCommentEntity> subCommentEntityList) {
-        this.subCommentEntityList = subCommentEntityList;
-    }
 }

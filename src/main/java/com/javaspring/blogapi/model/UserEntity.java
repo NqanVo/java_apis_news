@@ -1,6 +1,10 @@
 package com.javaspring.blogapi.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -8,11 +12,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import javax.xml.stream.events.Comment;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Entity(name = "tbl_users")
 @Table(name = "tbl_users")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class UserEntity extends BaseModel implements UserDetails {
     @Column(unique = true, nullable = false)
     private String username;
@@ -33,7 +42,7 @@ public class UserEntity extends BaseModel implements UserDetails {
     @Column
     private boolean enabled;
 
-    @OneToMany(mappedBy = "userEntity",cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL)
     private List<PostEntity> postEntityList = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -47,30 +56,27 @@ public class UserEntity extends BaseModel implements UserDetails {
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL)
     private List<CommentEntity> commentEntityList = new ArrayList<>();
 
-    public void setUsername(String username) {
+
+    public UserEntity(Long id, String createdBy, Date createdDate, String updatedBy, Date updatedDate, String username, String password, String fullName, String avatar, String phone, String address, Integer status, String verifyCodeEmail, boolean enabled, List<PostEntity> postEntityList, List<RoleEntity> roleEntities, List<CommentEntity> commentEntityList) {
+        super(id, createdBy, createdDate, updatedBy, updatedDate);
         this.username = username;
+        this.password = password;
+        this.fullName = fullName;
+        this.avatar = avatar;
+        this.phone = phone;
+        this.address = address;
+        this.status = status;
+        this.verifyCodeEmail = verifyCodeEmail;
+        this.enabled = enabled;
+        this.postEntityList = postEntityList;
+        this.roleEntities = roleEntities;
+        this.commentEntityList = commentEntityList;
     }
 
     //UserDetails
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roleEntities.stream().map(role -> new SimpleGrantedAuthority(role.getCode())).collect(Collectors.toList());
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
     }
 
     @Override
@@ -103,51 +109,4 @@ public class UserEntity extends BaseModel implements UserDetails {
         return enabled;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
-    public List<RoleEntity> getRoles() {
-        return roleEntities;
-    }
-
-    public void setRoles(List<RoleEntity> roleEntities) {
-        this.roleEntities = roleEntities;
-    }
-
-    public String getVerifyCodeEmail() {
-        return verifyCodeEmail;
-    }
-
-    public void setVerifyCodeEmail(String verifyCodeEmail) {
-        this.verifyCodeEmail = verifyCodeEmail;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
 }

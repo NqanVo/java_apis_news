@@ -1,6 +1,9 @@
 package com.javaspring.blogapi.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +11,9 @@ import java.util.List;
 
 @Entity(name = "tbl_posts")
 @Table(name = "tbl_posts")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class PostEntity extends BaseModel {
     @Column
     private String title;
@@ -28,60 +34,4 @@ public class PostEntity extends BaseModel {
 
     @OneToMany(mappedBy = "postEntity", cascade = CascadeType.ALL)
     private List<CommentEntity> commentEntityList = new ArrayList<>();
-
-    public UserEntity getUser() {
-        return userEntity;
-    }
-
-    public void setUser(UserEntity userEntity) {
-        this.userEntity = userEntity;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getThumbnail() {
-        return thumbnail;
-    }
-
-    public void setThumbnail(String thumbnail) {
-        this.thumbnail = thumbnail;
-    }
-
-    public String getShortDesc() {
-        return shortDesc;
-    }
-
-    public void setShortDesc(String shortDesc) {
-        this.shortDesc = shortDesc;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public CategoryEntity getCategory() {
-        return categoryEntity;
-    }
-
-    public void setCategory(CategoryEntity categoryEntity) {
-        this.categoryEntity = categoryEntity;
-    }
-
-    public List<CommentEntity> getCommentEntityList() {
-        return commentEntityList;
-    }
-
-    public void setCommentEntityList(List<CommentEntity> commentEntityList) {
-        this.commentEntityList = commentEntityList;
-    }
 }
