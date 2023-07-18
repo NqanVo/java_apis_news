@@ -1,14 +1,17 @@
 package com.javaspring.blogapi.config.jwt;
 
 import com.javaspring.blogapi.config.CustomUserDetailsService;
+import com.javaspring.blogapi.exception.CustomException;
 import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.service.impl.RoleService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;

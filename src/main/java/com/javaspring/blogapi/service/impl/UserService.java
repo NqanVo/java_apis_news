@@ -1,24 +1,30 @@
 package com.javaspring.blogapi.service.impl;
 
+import com.javaspring.blogapi.config.jwt.EXPIRED_TYPE;
 import com.javaspring.blogapi.config.jwt.JwtService2;
 import com.javaspring.blogapi.config.oauth.ResponseUserInfoGitHubOAuth;
 import com.javaspring.blogapi.config.oauth.ResponseUserInfoGoogleOAuth;
 import com.javaspring.blogapi.converter.UserConverter;
 import com.javaspring.blogapi.converter.UserInfoOAuthConverter;
 import com.javaspring.blogapi.dto.auth.AuthLoginDTO;
+import com.javaspring.blogapi.dto.auth.AuthResponseDTO;
 import com.javaspring.blogapi.dto.user.UserUpdatePasswordDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
 
 import com.javaspring.blogapi.dto.user.UserUpdateDTO;
 import com.javaspring.blogapi.exception.CustomException;
+import com.javaspring.blogapi.model.RefreshTokenEntity;
 import com.javaspring.blogapi.model.RoleEntity;
 import com.javaspring.blogapi.model.UserEntity;
+import com.javaspring.blogapi.repository.RefreshTokenRepository;
 import com.javaspring.blogapi.repository.UserRepository;
 import com.javaspring.blogapi.service.UserInterface;
 import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -51,9 +57,13 @@ public class UserService implements UserInterface {
     @Autowired
     private EmailService emailService;
     @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     @Autowired
     private UserInfoOAuthConverter oAuthConverter;
+    @Autowired
+    private EntityManager entityManager;
 
     //create new user or update user
     @Override
@@ -90,6 +100,7 @@ public class UserService implements UserInterface {
         }
     }
 
+    @Override
     public void verifyCode(String verifyCodeEmail) {
         UserEntity userEntity = userRepository.findByVerifyCodeEmail(verifyCodeEmail);
         if (userEntity == null) throw new CustomException.BadRequestException("Mã xác thực không tồn tại");
@@ -186,15 +197,25 @@ public class UserService implements UserInterface {
     }
 
     @Override
-    public String loginUser(AuthLoginDTO authLoginDTO) {
+    public String loginUser(AuthLoginDTO authLoginDTO, HttpServletResponse response) {
         UserEntity userEntity = userRepository.findByUsername(authLoginDTO.getUsername());
         if (userEntity == null)
             throw new CustomException.BadRequestException("Sai tài khoản");
         if (!(passwordEncoder.matches(authLoginDTO.getPassword(), userEntity.getPassword())))
             throw new CustomException.BadRequestException("Sai mật khẩu");
 
-        String token = jwtService.generateAccessToken(userEntity);
+        List<RefreshTokenEntity> refreshTokenOld = refreshTokenRepository.findRefreshTokenEntitiesByUserEntity(userEntity);
+        if (refreshTokenOld.size() > 0) {
+            refreshTokenOld.forEach(tokenOld -> refreshTokenRepository.deleteById(tokenOld.getId()));
+        }
+        String token = jwtService.generateAccessToken(userEntity, EXPIRED_TYPE.SHORT);
+        RefreshTokenEntity refreshTokenNew = jwtService.generateRefreshToken(userEntity);
+
+        refreshTokenRepository.save(refreshTokenNew);
+
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authLoginDTO.getUsername(), authLoginDTO.getPassword()));
+        response.setHeader("access_token", token);
+        response.setHeader("refresh_token", refreshTokenNew.getRefreshToken());
         return token;
     }
 
@@ -208,7 +229,7 @@ public class UserService implements UserInterface {
         } else {
             userDTO = userConverter.UserToUserDTO(userEntity);
         }
-        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
+        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO), EXPIRED_TYPE.SHORT);
     }
 
     @Override
@@ -221,11 +242,38 @@ public class UserService implements UserInterface {
         } else {
             userDTO = userConverter.UserToUserDTO(userEntity);
         }
-        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO));
+        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO), EXPIRED_TYPE.SHORT);
     }
 
-    @Autowired
-    private EntityManager entityManager;
+    @Override
+    public void logoutUser(String username) {
+//        UserEntity userEntity = userRepository.findByUsername(username);
+//        System.out.println(userEntity.getUsername());
+//        if(userEntity != null) refreshTokenRepository.deleteRefreshTokenEntityByUserEntity(userEntity);
+        refreshTokenRepository.deleteRefreshTokenEntityByUserEntityUsername(username);
+    }
+
+    @Override
+    public AuthResponseDTO refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            final String headerAuthorization = request.getHeader("Authorization");
+            if (headerAuthorization == null || !headerAuthorization.startsWith("Bearer"))
+                throw new CustomException.UnauthorizedException("Không có access token để yêu cầu");
+            String refreshToken = headerAuthorization.substring(7);
+            if (!jwtService.validateAccessToken(refreshToken)) throw new Exception();
+            String username = jwtService.getSubject(refreshToken);
+            UserEntity userEntity = userRepository.findByUsername(username);
+            if (userEntity == null) throw new Exception();
+            String accessTokenNew = jwtService.generateAccessToken(userEntity, EXPIRED_TYPE.SHORT);
+            String refreshTokenNew = jwtService.generateRefreshToken(userEntity).getRefreshToken();
+            response.setHeader("access_token", accessTokenNew);
+            response.setHeader("refresh_token", refreshTokenNew);
+            return new AuthResponseDTO(accessTokenNew);
+        } catch (Exception ex) {
+            throw new CustomException.UnauthorizedException("Phiên đăng nhập đã hết hạn");
+        }
+    }
+
 
     public ResponseFilter<UserDTO> findByFilters(Pageable pageable, String fullname, String phone, Boolean enabled, Date createFrom, Date createTo) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
@@ -264,6 +312,7 @@ public class UserService implements UserInterface {
 
         return new ResponseFilter<UserDTO>(userDTOS, totalResults);
     }
+
     private Predicate buildPredicate(CriteriaBuilder criteriaBuilder, Root<UserEntity> root, String fullname, String phone, Boolean enabled, Date createFrom, Date createTo) {
         // Danh sách điều kiện nếu có
         List<Predicate> predicateList = new ArrayList<>();
