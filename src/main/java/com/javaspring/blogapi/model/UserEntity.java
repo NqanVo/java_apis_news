@@ -56,6 +56,8 @@ public class UserEntity extends BaseModel implements UserDetails {
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL)
     private List<CommentEntity> commentEntityList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL)
+    private List<RefreshTokenEntity> refreshTokenEntity = new ArrayList<>();
 
     public UserEntity(Long id, String createdBy, Date createdDate, String updatedBy, Date updatedDate, String username, String password, String fullName, String avatar, String phone, String address, Integer status, String verifyCodeEmail, boolean enabled, List<PostEntity> postEntityList, List<RoleEntity> roleEntities, List<CommentEntity> commentEntityList) {
         super(id, createdBy, createdDate, updatedBy, updatedDate);

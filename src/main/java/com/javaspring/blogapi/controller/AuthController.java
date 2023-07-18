@@ -1,5 +1,7 @@
 package com.javaspring.blogapi.controller;
 
+import com.javaspring.blogapi.config.jwt.EXPIRED_TYPE;
+import com.javaspring.blogapi.config.jwt.JwtService2;
 import com.javaspring.blogapi.config.oauth.ResponseTokenGitHubOAuth;
 import com.javaspring.blogapi.config.oauth.ResponseTokenGoogleOAuth;
 import com.javaspring.blogapi.config.oauth.ResponseUserInfoGitHubOAuth;
@@ -8,6 +10,8 @@ import com.javaspring.blogapi.dto.auth.AuthLoginDTO;
 import com.javaspring.blogapi.dto.auth.AuthResponseDTO;
 import com.javaspring.blogapi.dto.error.ErrorDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
+import com.javaspring.blogapi.exception.CustomException;
+import com.javaspring.blogapi.model.UserEntity;
 import com.javaspring.blogapi.repository.UserRepository;
 import com.javaspring.blogapi.service.impl.EmailService;
 import com.javaspring.blogapi.service.impl.TypesLogin;
@@ -21,11 +25,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +51,7 @@ public class AuthController {
     private UserRepository userRepository;
     @Autowired
     private EmailService emailService;
+
     @Value("${google.client.id}")
     private String googleClientId;
     @Value("${google.client.secret}")
@@ -72,8 +80,37 @@ public class AuthController {
                     @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
             })
     @PostMapping(path = "/login")
-    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody AuthLoginDTO authLoginDTO) {
-        return ResponseEntity.ok().body(new AuthResponseDTO(userService.loginUser(authLoginDTO)));
+    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody AuthLoginDTO authLoginDTO, HttpServletResponse response) {
+        return ResponseEntity.ok().body(new AuthResponseDTO(userService.loginUser(authLoginDTO, response)));
+    }
+
+    @Operation(
+            description = "Đăng xuất",
+            responses = {
+                    @ApiResponse(content = @Content(), responseCode = "200")})
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Thành công"),
+                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
+            })
+    @GetMapping(path = "/logout/{username}")
+    @PreAuthorize("hasAnyRole('USER','ADMIN') and #username == authentication.name")
+    public void logout(@PathVariable String username) {
+        userService.logoutUser(username);
+    }
+
+    @Operation(
+            description = "refresh token với header Bearer token",
+            responses = {
+                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = AuthResponseDTO.class))), responseCode = "200")})
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Thành công"),
+                    @ApiResponse(responseCode = "401", description = "Phiên đăng nhập đã hết hạn", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
+            })
+    @GetMapping(path = "/refresh-token")
+    public ResponseEntity<AuthResponseDTO> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        return ResponseEntity.ok().body(userService.refreshToken(request, response));
     }
 
     @Operation(

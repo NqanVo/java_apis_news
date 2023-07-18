@@ -19,10 +19,8 @@ import java.util.List;
 public class CategoryEntity extends BaseModel {
     @Column(unique = true, nullable = false)
     private String name;
-
     @Column(unique = true, nullable = false)
     private String code;
-
     @OneToMany(mappedBy = "categoryEntity")
     private List<PostEntity> postEntities = new ArrayList<>();
 }

@@ -1,9 +1,7 @@
 package com.javaspring.blogapi.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -21,8 +19,8 @@ public abstract class BaseModel {
 
     @Id //Not null. PK
     @GeneratedValue(strategy = GenerationType.IDENTITY) //Tự động tăng id
+    @Setter(AccessLevel.NONE)
     private Long id;
-
     @Column
     @CreatedBy
     private String createdBy;
