@@ -81,7 +81,7 @@ public class AuthController {
             })
     @PostMapping(path = "/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody AuthLoginDTO authLoginDTO, HttpServletResponse response) {
-        return ResponseEntity.ok().body(new AuthResponseDTO(userService.loginUser(authLoginDTO, response)));
+        return ResponseEntity.ok().body((userService.loginUser(authLoginDTO, response)));
     }
 
     @Operation(
@@ -179,8 +179,9 @@ public class AuthController {
             ResponseUserInfoGoogleOAuth userInfoGoogle = userInfoResponse.getBody();
             if (userInfoGoogle != null && userInfoGoogle.isVerified_email()) {
                 // * 3 Redirect người dùng về trang login với parameter access_token
-                String access_token = userService.loginOAuth(userInfoGoogle);
-                String redirectUrl = urlFrontEnd + "/login/oauth?access_token=" + access_token;
+                String access_token = userService.loginOAuth(userInfoGoogle).getAccessToken();
+                String refresh_token = userService.loginOAuth(userInfoGoogle).getRefreshToken();
+                String redirectUrl = urlFrontEnd + "/login/oauth?access_token=" + access_token+"&refresh_token="+refresh_token;
                 return ResponseEntity.status(HttpStatus.FOUND)
                         .header(HttpHeaders.LOCATION, redirectUrl)
                         .build();
@@ -236,8 +237,9 @@ public class AuthController {
             ResponseUserInfoGitHubOAuth userInfoGitHub = userInfoResponse.getBody();
             if (userInfoGitHub != null) {
                 // * 3 Redirect người dùng về trang login với parameter access_token
-                String access_token = userService.loginOAuth(userInfoGitHub);
-                String redirectUrl = urlFrontEnd + "/login/oauth?access_token=" + access_token;
+                String access_token = userService.loginOAuth(userInfoGitHub).getAccessToken();
+                String refresh_token = userService.loginOAuth(userInfoGitHub).getRefreshToken();
+                String redirectUrl = urlFrontEnd + "/login/oauth?access_token=" + access_token+"&refresh_token="+refresh_token;
                 return ResponseEntity.status(HttpStatus.FOUND)
                         .header(HttpHeaders.LOCATION, redirectUrl)
                         .build();

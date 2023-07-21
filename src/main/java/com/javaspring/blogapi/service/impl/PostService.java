@@ -1,8 +1,11 @@
 package com.javaspring.blogapi.service.impl;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.javaspring.blogapi.config.IsUserOrIsAdmin;
 import com.javaspring.blogapi.converter.PostConverter;
-import com.javaspring.blogapi.dto.PostDTO;
+import com.javaspring.blogapi.dto.post.PostRequestDTO;
+import com.javaspring.blogapi.dto.post.PostResponseDTO;
 import com.javaspring.blogapi.exception.CustomException;
 import com.javaspring.blogapi.model.CategoryEntity;
 import com.javaspring.blogapi.model.PostEntity;
@@ -25,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -42,74 +44,87 @@ public class PostService implements PostInterface {
     private final IsUserOrIsAdmin userDetailsJwt = new IsUserOrIsAdmin();
     @Autowired
     private FilesService filesService;
-
+    @Autowired
+    private Cloudinary cloudinary;
     private final EntityManager entityManager;
 
     public PostService(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
+    String newImageName = null;
+
     @Override
     @Transactional(rollbackOn = Exception.class)
-    public PostDTO save(PostDTO newPostDTO, MultipartFile[] file) throws IOException {
-        CategoryEntity categoryEntity = categoryRepository.findByCode(newPostDTO.getCategoryCode());
-        userDetailsJwt.getUserAndIsAdmin();
-        PostEntity newPostEntity;
-        String oldImageName = null;
-        String newImageName;
-        boolean updateWithImage = false;
-        if (newPostDTO.getId() == null) {
-            // * Kiểm tra xem tiêu đề tồn tại chưa
-            if (postRepository.existsByTitle(newPostDTO.getTitle()))
-                throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
-            // * Kiểm tra xem file hợp lệ không
-            if (!(filesService.notEmpty(file) && filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
-            }
-            // * 2 Lưu ảnh mới
-            newImageName = new Date().getTime() + file[0].getOriginalFilename();
-            filesService.moveImageToFolder(file[0], newImageName);
-            newPostDTO.setThumbnail(newImageName);
-            // * Chuyển dto sang entity
-            newPostEntity = postConverter.ConverterPostDTOToPost(newPostDTO);
-            newPostEntity.setUserEntity(userDetailsJwt.getUserEntity());
-        } else {
-            // * Tìm post cũ
-            PostEntity oldPostEntity = postRepository.findById(newPostDTO.getId())
-                    .orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + newPostDTO.getId()));
-            // * Kiểm tra xem đúng user hay có quyền admin không
-            if (!(userDetailsJwt.getUserEntity().equals(oldPostEntity.getUserEntity()) || userDetailsJwt.isAdmin()))
-                throw new CustomException.UnauthorizedException("Không có quyền chỉnh sửa");
-            // * Kiểm tra xem tiêu đề tồn tại chưa
-            if (postRepository.existsByTitle(newPostDTO.getTitle()))
-                throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
-            // * 1 Lấy thumbnail cũ
-            oldImageName = oldPostEntity.getThumbnail();
-            if (!(file == null || file.length == 0)) {
-                if (!(filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
+    public PostResponseDTO save(PostRequestDTO postRequestDTO, MultipartFile[] file) throws IOException {
+        try {
+            CategoryEntity categoryEntity = categoryRepository.findByCode(postRequestDTO.getCategoryCode());
+            userDetailsJwt.getUserAndIsAdmin();
+            PostEntity newPostEntity;
+            String oldImageName = null;
+            boolean updateWithImage = false;
+            if (postRequestDTO.getId() == null) {
+                // * Kiểm tra xem tiêu đề tồn tại chưa
+                if (postRepository.existsByTitle(postRequestDTO.getTitle()))
+                    throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
+                // * Kiểm tra xem file hợp lệ không
+                if (!(filesService.notEmpty(file) && filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
                 }
-                // * cập nhật có kèm ảnh
-                updateWithImage = true;
                 // * 2 Lưu ảnh mới
-                newImageName = new Date().getTime() + file[0].getOriginalFilename();
-                filesService.moveImageToFolder(file[0], newImageName);
-                newPostDTO.setThumbnail(newImageName);
+//            newImageName = new Date().getTime() + file[0].getOriginalFilename();
+//            filesService.moveImageToFolder(file[0], newImageName);
+                newImageName = cloudinary.uploader().upload(file[0].getBytes(), ObjectUtils.emptyMap()).get("secure_url").toString();
+                postRequestDTO.setThumbnail(newImageName);
+                // * Chuyển dto sang entity
+                newPostEntity = postConverter.ConverterPostDTOToPost(postRequestDTO);
+                newPostEntity.setUserEntity(userDetailsJwt.getUserEntity());
             } else {
-                newPostDTO.setThumbnail(oldImageName);
+                // * Tìm post cũ
+                PostEntity oldPostEntity = postRepository.findById(postRequestDTO.getId())
+                        .orElseThrow(() -> new CustomException.NotFoundException("Không tìm thấy bài đăng " + postRequestDTO.getId()));
+                // * Kiểm tra xem đúng user hay có quyền admin không
+                if (!(userDetailsJwt.getUserEntity().equals(oldPostEntity.getUserEntity()) || userDetailsJwt.isAdmin()))
+                    throw new CustomException.UnauthorizedException("Không có quyền chỉnh sửa");
+                // * Kiểm tra xem tiêu đề tồn tại chưa
+                if (postRepository.existsByTitle(postRequestDTO.getTitle()))
+                    throw new CustomException.BadRequestException("Bài đăng đã tồn tại");
+                // * 1 Lấy thumbnail cũ
+                oldImageName = oldPostEntity.getThumbnail();
+                if (!(file == null || file.length == 0)) {
+                    if (!(filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
+                    }
+                    // * cập nhật có kèm ảnh
+                    updateWithImage = true;
+                    // * 2 Lưu ảnh mới
+//                newImageName = new Date().getTime() + file[0].getOriginalFilename();
+//                filesService.moveImageToFolder(file[0], newImageName);
+                    newImageName = cloudinary.uploader().upload(file[0].getBytes(), ObjectUtils.emptyMap()).get("secure_url").toString();
+                    postRequestDTO.setThumbnail(newImageName);
+                } else {
+                    postRequestDTO.setThumbnail(oldImageName);
+                }
+                // * Đè Post mới sang post cũ
+                newPostEntity = postConverter.ConverterNewPostDTOToOldPost(postRequestDTO, oldPostEntity);
             }
-            // * Đè Post mới sang post cũ
-            newPostEntity = postConverter.ConverterNewPostDTOToOldPost(newPostDTO, oldPostEntity);
+            newPostEntity.setCategoryEntity(categoryEntity);
+            // * 3 Lưu post || sửa post cũ
+            newPostEntity = postRepository.save(newPostEntity);
+            // * Chuyển entity sang dto
+            PostResponseDTO dto = postConverter.ConverterPostToPostDTO(newPostEntity);
+            // * 4 Xóa thumbnail cũ nếu có
+            if (!(oldImageName == null || oldImageName.equals("")) && updateWithImage) {
+//            filesService.deleteImageFromFolder(oldImageName);
+                String publicId = getPublicIdFromImageUrl(oldImageName);
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+            return dto;
+        } catch (Exception ex) {
+            if (newImageName != null) {
+                String publicId = getPublicIdFromImageUrl(newImageName);
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+            throw new CustomException.BadRequestException(ex.getMessage());
         }
-        newPostEntity.setCategoryEntity(categoryEntity);
-        // * 3 Lưu post || sửa post cũ
-        newPostEntity = postRepository.save(newPostEntity);
-        // * Chuyển entity sang dto
-        PostDTO dto = postConverter.ConverterPostToPostDTO(newPostEntity);
-        dto.setCategoryCode(categoryEntity.getCode());
-        // * 4 Xóa thumbnail cũ nếu có
-        if (!(oldImageName == null || oldImageName.equals("")) && updateWithImage) {
-            filesService.deleteImageFromFolder(oldImageName);
-        }
-        return dto;
     }
 
     @Transactional(rollbackOn = Exception.class)
@@ -154,15 +169,15 @@ public class PostService implements PostInterface {
     }
 
     @Override
-    public List<PostDTO> findAll(Pageable pageable, String username, String category, String title) {
-        List<PostDTO> postDTOlist = new ArrayList<>();
+    public List<PostResponseDTO> findAll(Pageable pageable, String username, String category, String title) {
+        List<PostResponseDTO> postResponseDTOlist = new ArrayList<>();
         List<PostEntity> postEntityList = postRepository.findAll(pageable).getContent();
         for (PostEntity item : postEntityList)
-            postDTOlist.add(postConverter.ConverterPostToPostDTO(item));
-        return postDTOlist;
+            postResponseDTOlist.add(postConverter.ConverterPostToPostDTO(item));
+        return postResponseDTOlist;
     }
 
-    public ResponseFilter<PostDTO> findByFilter(Pageable pageable, String username, String categoryCode, String title, Date createFrom, Date createTo) {
+    public ResponseFilter<PostResponseDTO> findByFilter(Pageable pageable, String username, String categoryCode, String title, Date createFrom, Date createTo) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
 
         CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
@@ -195,9 +210,9 @@ public class PostService implements PostInterface {
         List<PostEntity> postEntities = typedQuery.getResultList();
         Long totalResults = countTypedQuery.getSingleResult();
 
-        List<PostDTO> postDTOS = postEntities.stream().map(postEntity -> postConverter.ConverterPostToPostDTO(postEntity)).toList();
+        List<PostResponseDTO> postResponseDTOS = postEntities.stream().map(postEntity -> postConverter.ConverterPostToPostDTO(postEntity)).toList();
 
-        return new ResponseFilter<PostDTO>(postDTOS, totalResults);
+        return new ResponseFilter<PostResponseDTO>(postResponseDTOS, totalResults);
     }
 
     private Predicate buildPredicate(CriteriaBuilder criteriaBuilder, Root<PostEntity> root, String username, String categoryCode, String title, Date createFrom, Date createTo) {
@@ -230,11 +245,17 @@ public class PostService implements PostInterface {
     }
 
     @Override
-    public PostDTO findById(Long idPost) {
+    public PostResponseDTO findById(Long idPost) {
         Optional<PostEntity> post = postRepository.findById(idPost);
         if (post.isEmpty()) {
             throw new CustomException.NotFoundException("Không tìm thấy bài đăng");
         }
         return postConverter.ConverterPostToPostDTO(post.get());
+    }
+
+    private String getPublicIdFromImageUrl(String imageUrl) {
+        int startIndex = imageUrl.lastIndexOf('/') + 1;
+        int endIndex = imageUrl.lastIndexOf('.');
+        return imageUrl.substring(startIndex, endIndex);
     }
 }

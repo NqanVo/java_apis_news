@@ -1,10 +1,8 @@
 package com.javaspring.blogapi.controller;
 
-import com.javaspring.blogapi.dto.PostDTO;
 import com.javaspring.blogapi.dto.error.ErrorDTO;
 import com.javaspring.blogapi.service.impl.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

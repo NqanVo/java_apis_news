@@ -1,9 +1,8 @@
 package com.javaspring.blogapi.converter;
 
-import com.javaspring.blogapi.dto.CategoryDTO;
-import com.javaspring.blogapi.dto.user.UserUpdateDTO;
+import com.javaspring.blogapi.dto.category.CategoryRequestDTO;
+import com.javaspring.blogapi.dto.category.CategoryResponseDTO;
 import com.javaspring.blogapi.model.CategoryEntity;
-import com.javaspring.blogapi.model.UserEntity;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
@@ -13,31 +12,28 @@ import java.util.regex.Pattern;
 
 @Component
 public class CategoryConverter {
-    public CategoryDTO EntityToDTO(CategoryEntity categoryEntity) {
-        CategoryDTO temp = new CategoryDTO();
-//        temp.setName(categoryEntity.getName());
-//        temp.setCode(categoryEntity.getCode());
+    public CategoryResponseDTO EntityToDTO(CategoryEntity categoryEntity) {
+        CategoryResponseDTO temp = new CategoryResponseDTO();
         BeanUtils.copyProperties(categoryEntity, temp);
-        //converter date and by
         return temp;
     }
 
-    public CategoryEntity DTOToEntity(CategoryDTO categoryDTO) {
+    public CategoryEntity DTOToEntity(CategoryRequestDTO categoryRequestDTO) {
         CategoryEntity temp = new CategoryEntity();
 //        String code = NameToCode(categoryDTO.getName());
 //        temp.setName(categoryDTO.getName());
-        BeanUtils.copyProperties(categoryDTO, temp);
-        temp.setCode(NameToCode(categoryDTO.getName()));
+        BeanUtils.copyProperties(categoryRequestDTO, temp);
+        temp.setCode(NameToCode(categoryRequestDTO.getName()));
 
         //converter date and by
         return temp;
     }
 
-    public CategoryEntity UpdateInfo_DTOToEntity(CategoryDTO categoryDTO, CategoryEntity categoryEntity){
+    public CategoryEntity UpdateInfo_DTOToEntity(CategoryRequestDTO categoryRequestDTO, CategoryEntity categoryEntity){
         String createBy = categoryEntity.getCreatedBy();
         Date createDate = categoryEntity.getCreatedDate();
 
-        BeanUtils.copyProperties(categoryDTO, categoryEntity);
+        BeanUtils.copyProperties(categoryRequestDTO, categoryEntity);
         categoryEntity.setCreatedBy(createBy);
         categoryEntity.setCreatedDate(createDate);
 

@@ -1,16 +1,17 @@
 package com.javaspring.blogapi.service;
 
-import com.javaspring.blogapi.dto.CategoryDTO;
+import com.javaspring.blogapi.dto.category.CategoryRequestDTO;
+import com.javaspring.blogapi.dto.category.CategoryResponseDTO;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
 
 public interface CategoryInterface {
-    CategoryDTO save(CategoryDTO categoryDTO);
+    CategoryResponseDTO save(CategoryRequestDTO categoryRequestDTO);
 
-    List<CategoryDTO> findAllCat();
+    List<CategoryResponseDTO> findAllCat();
 
-    CategoryDTO findByCode(String code);
+    CategoryResponseDTO findByCode(String code);
 
-    List<CategoryDTO> deleteCat(String code) throws DataIntegrityViolationException;
+    List<CategoryResponseDTO> deleteCat(String code) throws DataIntegrityViolationException;
 }

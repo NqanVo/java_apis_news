@@ -21,7 +21,8 @@ public class PostEntity extends BaseModel {
     private String thumbnail;
     @Column
     private String shortDesc;
-    @Column
+//    @Column(columnDefinition = "LONGTEXT") //MySQL
+    @Column(columnDefinition = "TEXT") //PostgreSQL 
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,8 +1,9 @@
 package com.javaspring.blogapi.converter;
 
-import com.javaspring.blogapi.dto.PostDTO;
+import com.javaspring.blogapi.dto.post.PostRequestDTO;
+import com.javaspring.blogapi.dto.post.PostResponseDTO;
+import com.javaspring.blogapi.dto.category.CategoryResponseDTO;
 import com.javaspring.blogapi.model.PostEntity;
-import com.javaspring.blogapi.repository.CategoryRepository;
 import com.javaspring.blogapi.service.impl.CategoryService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,26 +16,25 @@ public class PostConverter {
     @Autowired
     private CategoryService categoryService;
 
-    public PostEntity ConverterPostDTOToPost(PostDTO postDTO) {
+    public PostEntity ConverterPostDTOToPost(PostRequestDTO postRequestDTO) {
         PostEntity postEntity = new PostEntity();
-
-        BeanUtils.copyProperties(postDTO, postEntity);
+        BeanUtils.copyProperties(postRequestDTO, postEntity);
         return postEntity;
     }
 
-    public PostDTO ConverterPostToPostDTO(PostEntity postEntity) {
-        PostDTO postDTO = new PostDTO();
+    public PostResponseDTO ConverterPostToPostDTO(PostEntity postEntity) {
+        PostResponseDTO postResponseDTO = new PostResponseDTO();
 
-        BeanUtils.copyProperties(postEntity, postDTO);
-        postDTO.setCategoryCode(categoryService.findByCode(postEntity.getCategoryEntity().getCode()).getCode());
-        postDTO.setTotalComments(postEntity.getCommentEntityList().stream().count());
-        return postDTO;
+        BeanUtils.copyProperties(postEntity, postResponseDTO);
+        postResponseDTO.setCategory(new CategoryResponseDTO(postEntity.getCategoryEntity().getId(), postEntity.getCategoryEntity().getName(), postEntity.getCategoryEntity().getCode()));
+        postResponseDTO.setTotalComments(postEntity.getCommentEntityList().stream().count());
+        return postResponseDTO;
     }
 
-    public PostEntity ConverterNewPostDTOToOldPost(PostDTO newPostDTO, PostEntity oldPostEntity) {
+    public PostEntity ConverterNewPostDTOToOldPost(PostRequestDTO postRequestDTO, PostEntity oldPostEntity) {
         String createBy = oldPostEntity.getCreatedBy();
         Date createDate = oldPostEntity.getCreatedDate();
-        BeanUtils.copyProperties(newPostDTO, oldPostEntity);
+        BeanUtils.copyProperties(postRequestDTO, oldPostEntity);
         oldPostEntity.setCreatedBy(createBy);
         oldPostEntity.setCreatedDate(createDate);
         return oldPostEntity;

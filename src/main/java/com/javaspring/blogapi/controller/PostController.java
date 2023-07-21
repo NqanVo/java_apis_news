@@ -1,27 +1,33 @@
 package com.javaspring.blogapi.controller;
 
-import com.javaspring.blogapi.dto.PostDTO;
-import com.javaspring.blogapi.dto.comment.CommentDTO;
-import com.javaspring.blogapi.dto.comment.SubCommentDTO;
+import com.javaspring.blogapi.dto.post.PostRequestDTO;
+import com.javaspring.blogapi.dto.post.PostResponseDTO;
 import com.javaspring.blogapi.dto.error.ErrorDTO;
 import com.javaspring.blogapi.exception.CustomException;
 import com.javaspring.blogapi.response.ResponseList;
 import com.javaspring.blogapi.service.impl.FilesService;
-import com.javaspring.blogapi.service.impl.CommentService;
 import com.javaspring.blogapi.service.impl.PostService;
 import com.javaspring.blogapi.service.impl.ResponseFilter;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.security.SecuritySchemes;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,6 +41,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(path = "/posts")
 @Tag(name = "Posts Controller")
+@SecurityRequirement(name = "Authorization")
 public class PostController {
     @Autowired
     private PostService postService;
@@ -44,14 +51,14 @@ public class PostController {
     @Operation(
             description = "Lấy danh sách bài viết",
             responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostDTO.class))), responseCode = "200")})
+                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponseDTO.class))), responseCode = "200")})
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "200", description = "Thành công"),
                     @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
             })
     @GetMapping
-    public ResponseList<PostDTO> findByFilter(
+    public ResponseList<PostResponseDTO> findByFilter(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String categoryCode,
             @RequestParam(required = false) String username,
@@ -72,9 +79,9 @@ public class PostController {
             calendar.add(Calendar.DAY_OF_MONTH, 1);
             createTo = calendar.getTime();
         }
-        ResponseFilter<PostDTO> result = postService.findByFilter(pageable, username, categoryCode, title, createFrom, createTo);
+        ResponseFilter<PostResponseDTO> result = postService.findByFilter(pageable, username, categoryCode, title, createFrom, createTo);
 
-        return new ResponseList<PostDTO>(
+        return new ResponseList<PostResponseDTO>(
                 actualCurrentPage,
                 actualLimit,
                 (long) Math.ceil((double) result.total() / actualLimit),
@@ -85,21 +92,21 @@ public class PostController {
     @Operation(
             description = "Lấy bài viết theo id",
             responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostDTO.class))), responseCode = "200")})
+                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponseDTO.class))), responseCode = "200")})
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "200", description = "Thành công"),
                     @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
             })
     @GetMapping(path = "/{idPost}")
-    public PostDTO findByIdPost(@PathVariable Long idPost) {
+    public PostResponseDTO findByIdPost(@PathVariable Long idPost) {
         return postService.findById(idPost);
     }
 
     @Operation(
             description = "Tạo bài viết, quyền USER/ADMIN",
             responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostDTO.class))), responseCode = "200")})
+                    @ApiResponse(content = @Content(schema = @Schema(implementation = PostResponseDTO.class)), responseCode = "200")})
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "200", description = "Thành công"),
@@ -109,17 +116,22 @@ public class PostController {
             })
     @PostMapping
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public PostDTO createPost(@Valid @RequestPart("post") PostDTO postDTO, @RequestPart(required = false) MultipartFile[] file) throws IOException {
-        // * Kiểm tra xem file hợp lệ không
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+            mediaType = "multipart/form-data",
+            schema = @Schema(implementation = FormUpload.class)
+    ))
+    public PostResponseDTO createPost(@RequestPart(name = "post") @Valid PostRequestDTO postRequestDTO,
+                                      @RequestPart(name = "file") MultipartFile[] file) throws IOException {
+
         if (!(filesService.notEmpty(file) && filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
         }
-        return postService.save(postDTO, file);
+        return postService.save(postRequestDTO, file);
     }
 
     @Operation(
             description = "Cập nhật bài viết, quyền USER/ADMIN",
             responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostDTO.class))), responseCode = "200")})
+                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponseDTO.class))), responseCode = "200")})
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "200", description = "Thành công"),
@@ -129,15 +141,15 @@ public class PostController {
             })
     @PutMapping(path = "/{idPost}")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public PostDTO updatePost(@PathVariable Long idPost, @Valid @RequestPart("post") PostDTO postDTO, @RequestPart(required = false) MultipartFile[] file) throws IOException {
-        postDTO.setId(idPost);
-        return postService.save(postDTO, file);
+    public PostResponseDTO updatePost(@PathVariable Long idPost, @Valid @RequestPart("post") PostRequestDTO postRequestDTO, @RequestPart(name = "file") MultipartFile[] file) throws IOException {
+        postRequestDTO.setId(idPost);
+        return postService.save(postRequestDTO, file);
     }
 
     @Operation(
             description = "Xóa bài viết, quyền USER/ADMIN",
             responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostDTO.class))), responseCode = "200")})
+                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponseDTO.class))), responseCode = "200")})
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "200", description = "Thành công"),
@@ -156,7 +168,7 @@ public class PostController {
     @Operation(
             description = "Xóa bài viết, quyền USER/ADMIN",
             responses = {
-                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostDTO.class))), responseCode = "200")})
+                    @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = PostResponseDTO.class))), responseCode = "200")})
     @ApiResponses(
             value = {
                     @ApiResponse(responseCode = "200", description = "Thành công"),
@@ -170,4 +182,9 @@ public class PostController {
         postService.deletePost(id);
         return ResponseEntity.ok().body("Delete success posts: " + id);
     }
+}
+
+record FormUpload(
+        MultipartFile[] file,
+        PostRequestDTO postRequestDTO) {
 }
