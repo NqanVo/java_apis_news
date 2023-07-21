@@ -38,11 +38,11 @@ public interface UserInterface {
 
     Long countItems();
 
-    String loginUser(AuthLoginDTO authLoginDTO, HttpServletResponse response);
+    AuthResponseDTO loginUser(AuthLoginDTO authLoginDTO, HttpServletResponse response);
 
-    String loginOAuth(ResponseUserInfoGoogleOAuth googleUser) throws MessagingException;
+    AuthResponseDTO loginOAuth(ResponseUserInfoGoogleOAuth googleUser) throws MessagingException;
 
-    String loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) throws MessagingException;
+    AuthResponseDTO loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) throws MessagingException;
 
     void logoutUser(String username);
 

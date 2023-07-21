@@ -1,5 +1,7 @@
 package com.javaspring.blogapi.service.impl;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.javaspring.blogapi.config.jwt.EXPIRED_TYPE;
 import com.javaspring.blogapi.config.jwt.JwtService2;
 import com.javaspring.blogapi.config.oauth.ResponseUserInfoGitHubOAuth;
@@ -64,6 +66,8 @@ public class UserService implements UserInterface {
     private UserInfoOAuthConverter oAuthConverter;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private Cloudinary cloudinary;
 
     //create new user or update user
     @Override
@@ -110,27 +114,55 @@ public class UserService implements UserInterface {
         userRepository.save(userEntity);
     }
 
+//    @Override
+//    @Transactional(rollbackOn = Exception.class)
+//// quay về quá khứ nếu xãy ra lỗi trong csdl (bao gồm cả xóa ảnh vừa lưu/ không lưu db)
+//    public UserDTO saveImage(String username, MultipartFile[] file) throws IOException {
+//        UserEntity userEntity = userRepository.findByUsername(username);
+//        if (userEntity == null) throw new CustomException.NotFoundException("Không tìm thấy người dùng: " + username);
+//        if (!(filesService.isSingleFile(file) && filesService.notEmpty(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 2))) {
+//        }
+//        // * 1 Lấy avatar cũ
+//        String oldAvatar = userEntity.getAvatar();
+//        // * 2 Lưu avatar mới
+//        String newNameFile = new Date().getTime() + "_" + file[0].getOriginalFilename();
+//        userEntity.setAvatar(newNameFile);
+//        filesService.moveImageToFolder(file[0], newNameFile);
+//        // * 3 Lưu vào csdl
+//        userEntity = userRepository.save(userEntity);
+//        // * 4 Xóa avatar cũ nếu có
+//        if (!(oldAvatar == null || oldAvatar.equals(""))) {
+//            filesService.deleteImageFromFolder(oldAvatar);
+//        }
+//        return userConverter.UserToUserDTO(userEntity);
+//    }
+
     @Override
     @Transactional(rollbackOn = Exception.class)
 // quay về quá khứ nếu xãy ra lỗi trong csdl (bao gồm cả xóa ảnh vừa lưu/ không lưu db)
     public UserDTO saveImage(String username, MultipartFile[] file) throws IOException {
-        UserEntity userEntity = userRepository.findByUsername(username);
-        if (userEntity == null) throw new CustomException.NotFoundException("Không tìm thấy người dùng: " + username);
-        if (!(filesService.isSingleFile(file) && filesService.notEmpty(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 2))) {
+        try {
+            UserEntity userEntity = userRepository.findByUsername(username);
+            if (userEntity == null)
+                throw new CustomException.NotFoundException("Không tìm thấy người dùng: " + username);
+            if (!(filesService.isSingleFile(file) && filesService.notEmpty(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 2))) {
+            }
+            // * 1 Lấy avatar cũ
+            String oldAvatar = userEntity.getAvatar();
+            // * 2 Lưu avatar mới
+            String urlImage = cloudinary.uploader().upload(file[0].getBytes(), ObjectUtils.emptyMap()).get("secure_url").toString();
+            userEntity.setAvatar(urlImage);
+            // * 3 Lưu vào csdl
+            userEntity = userRepository.save(userEntity);
+            // * 4 Xóa avatar cũ nếu có
+            if (!(oldAvatar == null || oldAvatar.equals(""))) {
+                String publicId = getPublicIdFromImageUrl(oldAvatar);
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+            return userConverter.UserToUserDTO(userEntity);
+        } catch (Exception ex) {
+            throw new CustomException.BadRequestException("Error uploading file" + ex.getMessage());
         }
-        // * 1 Lấy avatar cũ
-        String oldAvatar = userEntity.getAvatar();
-        // * 2 Lưu avatar mới
-        String newNameFile = new Date().getTime() + "_" + file[0].getOriginalFilename();
-        userEntity.setAvatar(newNameFile);
-        filesService.moveImageToFolder(file[0], newNameFile);
-        // * 3 Lưu vào csdl
-        userEntity = userRepository.save(userEntity);
-        // * 4 Xóa avatar cũ nếu có
-        if (!(oldAvatar == null || oldAvatar.equals(""))) {
-            filesService.deleteImageFromFolder(oldAvatar);
-        }
-        return userConverter.UserToUserDTO(userEntity);
     }
 
     @Override
@@ -197,7 +229,7 @@ public class UserService implements UserInterface {
     }
 
     @Override
-    public String loginUser(AuthLoginDTO authLoginDTO, HttpServletResponse response) {
+    public AuthResponseDTO loginUser(AuthLoginDTO authLoginDTO, HttpServletResponse response) {
         UserEntity userEntity = userRepository.findByUsername(authLoginDTO.getUsername());
         if (userEntity == null)
             throw new CustomException.BadRequestException("Sai tài khoản");
@@ -216,33 +248,46 @@ public class UserService implements UserInterface {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authLoginDTO.getUsername(), authLoginDTO.getPassword()));
         response.setHeader("access_token", token);
         response.setHeader("refresh_token", refreshTokenNew.getRefreshToken());
-        return token;
+        return new AuthResponseDTO(token, refreshTokenNew.getRefreshToken());
     }
 
     @Override
-    public String loginOAuth(ResponseUserInfoGoogleOAuth googleUser) {
+    public AuthResponseDTO loginOAuth(ResponseUserInfoGoogleOAuth googleUser) {
         UserEntity userEntity = userRepository.findByUsername(googleUser.getEmail());
-        UserDTO userDTO = new UserDTO();
         if (userEntity == null) {
             userEntity = oAuthConverter.OAuthGoogleEntity(googleUser);
-            userDTO = save(userConverter.UserToUserDTO(userEntity), TypesLogin.OAUTH);
-        } else {
-            userDTO = userConverter.UserToUserDTO(userEntity);
+            RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
+            userEntity.setPassword(passwordEncoder.encode("123Abc"));
+            userEntity.getRoleEntities().add(roleEntityUser);
+            userEntity.setStatus(1);
+            userEntity.setEnabled(true);
+            userEntity.setVerifyCodeEmail("");
+            userEntity = userRepository.save(userEntity);
         }
-        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO), EXPIRED_TYPE.SHORT);
+        String accessToken = jwtService.generateAccessToken(userEntity, EXPIRED_TYPE.SHORT);
+        RefreshTokenEntity refreshTokenEntity = jwtService.generateRefreshToken(userEntity);
+        refreshTokenRepository.save(refreshTokenEntity);
+        return new AuthResponseDTO(accessToken, refreshTokenEntity.getRefreshToken());
     }
 
     @Override
-    public String loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) {
+    public AuthResponseDTO loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) {
         UserEntity userEntity = userRepository.findByUsername(gitHubOAuth.getLogin());
-        UserDTO userDTO = new UserDTO();
         if (userEntity == null) {
             userEntity = oAuthConverter.OAuthGitHubToEntity(gitHubOAuth);
-            userDTO = save(userConverter.UserToUserDTO(userEntity), TypesLogin.OAUTH);
-        } else {
-            userDTO = userConverter.UserToUserDTO(userEntity);
+            RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
+            userEntity.setPassword(passwordEncoder.encode("123Abc"));
+            userEntity.getRoleEntities().add(roleEntityUser);
+            userEntity.setStatus(1);
+            userEntity.setEnabled(true);
+            userEntity.setVerifyCodeEmail("");
+            userEntity = userRepository.save(userEntity);
         }
-        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO), EXPIRED_TYPE.SHORT);
+        String accessToken = jwtService.generateAccessToken(userEntity, EXPIRED_TYPE.SHORT);
+        RefreshTokenEntity refreshTokenEntity = jwtService.generateRefreshToken(userEntity);
+        refreshTokenRepository.save(refreshTokenEntity);
+        return new AuthResponseDTO(accessToken, refreshTokenEntity.getRefreshToken());
+//        return jwtService.generateAccessToken(userConverter.UserDTOToUser(userDTO), EXPIRED_TYPE.SHORT);
     }
 
     @Override
@@ -258,17 +303,23 @@ public class UserService implements UserInterface {
         try {
             final String headerAuthorization = request.getHeader("Authorization");
             if (headerAuthorization == null || !headerAuthorization.startsWith("Bearer"))
-                throw new CustomException.UnauthorizedException("Không có access token để yêu cầu");
+                throw new CustomException.UnauthorizedException("Cần có Refresh Token để yêu cầu");
             String refreshToken = headerAuthorization.substring(7);
             if (!jwtService.validateAccessToken(refreshToken)) throw new Exception();
+
+            if (!refreshTokenRepository.existsRefreshTokenEntitiesByRefreshToken(refreshToken))
+                throw new CustomException.UnauthorizedException("Refresh Token không tồn tại");
             String username = jwtService.getSubject(refreshToken);
             UserEntity userEntity = userRepository.findByUsername(username);
             if (userEntity == null) throw new Exception();
             String accessTokenNew = jwtService.generateAccessToken(userEntity, EXPIRED_TYPE.SHORT);
-            String refreshTokenNew = jwtService.generateRefreshToken(userEntity).getRefreshToken();
+            RefreshTokenEntity refreshTokenNew = jwtService.generateRefreshToken(userEntity);
+            // Xoa refreshToken cu va luu refreshToken moi
+            refreshTokenRepository.deleteRefreshTokenEntityByUserEntityUsername(username);
+            refreshTokenRepository.save(refreshTokenNew);
             response.setHeader("access_token", accessTokenNew);
-            response.setHeader("refresh_token", refreshTokenNew);
-            return new AuthResponseDTO(accessTokenNew);
+            response.setHeader("refresh_token", refreshTokenNew.getRefreshToken());
+            return new AuthResponseDTO(accessTokenNew, refreshToken);
         } catch (Exception ex) {
             throw new CustomException.UnauthorizedException("Phiên đăng nhập đã hết hạn");
         }
@@ -336,6 +387,12 @@ public class UserService implements UserInterface {
         }
         // * Kết hợp các điều kiện
         return criteriaBuilder.and(predicateList.toArray(new Predicate[0]));
+    }
+
+    private String getPublicIdFromImageUrl(String imageUrl) {
+        int startIndex = imageUrl.lastIndexOf('/') + 1;
+        int endIndex = imageUrl.lastIndexOf('.');
+        return imageUrl.substring(startIndex, endIndex);
     }
 }
 

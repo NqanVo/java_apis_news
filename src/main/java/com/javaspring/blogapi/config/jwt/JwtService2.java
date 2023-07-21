@@ -24,8 +24,8 @@ public class JwtService2 {
     private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
     //    private static final long EXPIRE_DURATION = 24 * 60 * 60 * 1000; // 24h
 //    private static final long EXPIRE_DURATION_LONG = 24 * 60 * 60 * 1000; // 24h
-    private static final long EXPIRE_DURATION_LONG = 4 * 60 * 1000; // 4p
-    private static final long EXPIRE_DURATION = 2 * 60 * 1000; // 2p
+    private static final long EXPIRE_DURATION_LONG = 24 * 60 * 60 * 1000; // 24h
+    private static final long EXPIRE_DURATION = 10 * 60 * 1000; // 5p
     private static final Logger logger = LoggerFactory.getLogger(JwtService2.class.getName());
 
     public String generateAccessToken(UserEntity userEntity, EXPIRED_TYPE type) {

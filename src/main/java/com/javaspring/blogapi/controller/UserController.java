@@ -1,6 +1,5 @@
 package com.javaspring.blogapi.controller;
 
-import com.javaspring.blogapi.dto.PostDTO;
 import com.javaspring.blogapi.dto.error.ErrorDTO;
 import com.javaspring.blogapi.dto.user.UserUpdatePasswordDTO;
 import com.javaspring.blogapi.dto.user.UserDTO;
