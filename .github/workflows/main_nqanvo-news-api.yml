@@ -23,14 +23,14 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://index.docker.io/v1/
-        username: ${{ secrets.AzureAppService_ContainerUsername_c333093acf6e4e31b268b4b7015c3c1b }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_f4bc7b1f34f14520a822925aa288f30c }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_599072b56c8b4e679d96caa3617d4529 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_ffb2e9aa68fe48ca91e3f0c6793020d0 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_c333093acf6e4e31b268b4b7015c3c1b }}/news-apis:${{ github.sha }}
+        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_599072b56c8b4e679d96caa3617d4529 }}/news-apis:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -47,5 +47,5 @@ jobs:
       with:
         app-name: 'nqanvo-news-api'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_6c6b6ba400954ea0b8c296635e281362 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_c333093acf6e4e31b268b4b7015c3c1b }}/news-apis:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_9705deffcf7f4c34a956e6eec4fd0cb0 }}
+        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_599072b56c8b4e679d96caa3617d4529 }}/news-apis:${{ github.sha }}'
