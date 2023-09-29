@@ -138,6 +138,7 @@ public class CustomException extends ResponseEntityExceptionHandler {
         return new ResponseEntity(errorValidationDTO, HttpStatus.BAD_REQUEST);
     }
 
+    //Chủ động ném ra lỗi
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public static class NotFoundException extends RuntimeException {
         public NotFoundException(String message) {

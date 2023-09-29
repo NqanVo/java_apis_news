@@ -103,29 +103,30 @@ public class PostController {
         return postService.findById(idPost);
     }
 
-    @Operation(
-            description = "Tạo bài viết, quyền USER/ADMIN",
-            responses = {
-                    @ApiResponse(content = @Content(schema = @Schema(implementation = PostResponseDTO.class)), responseCode = "200")})
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Thành công"),
-                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
-                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
-            })
+//    @Operation(
+//            description = "Tạo bài viết, quyền USER/ADMIN",
+//            responses = {
+//                    @ApiResponse(content = @Content(schema = @Schema(implementation = PostResponseDTO.class)), responseCode = "200")})
+//    @ApiResponses(
+//            value = {
+//                    @ApiResponse(responseCode = "200", description = "Thành công"),
+//                    @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
+//                    @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
+//                    @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
+//            })
     @PostMapping
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
             mediaType = "multipart/form-data",
             schema = @Schema(implementation = FormUpload.class)
     ))
-    public PostResponseDTO createPost(@RequestPart(name = "post") @Valid PostRequestDTO postRequestDTO,
-                                      @RequestPart(name = "file") MultipartFile[] file) throws IOException {
+    public PostResponseDTO createPost(@RequestPart(name = "file") MultipartFile file,
+                                      @RequestPart(name = "post") @Valid PostRequestDTO post) throws IOException {
 
-        if (!(filesService.notEmpty(file) && filesService.isSingleFile(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 5))) {
+        MultipartFile[] files = new MultipartFile[]{file};
+        if (!(filesService.notEmpty(files) && filesService.isSingleFile(files) && filesService.isImageFile(files[0]) && filesService.maxSize(files[0], 5))) {
         }
-        return postService.save(postRequestDTO, file);
+        return postService.save(post, files);
     }
 
     @Operation(
@@ -139,6 +140,10 @@ public class PostController {
                     @ApiResponse(responseCode = "403", description = "Truy cập bị cấm", content = @Content(schema = @Schema(implementation = ErrorDTO.class))),
                     @ApiResponse(responseCode = "404", description = "Không tìm thấy", content = @Content(schema = @Schema(implementation = ErrorDTO.class)))
             })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+            mediaType = "multipart/form-data",
+            schema = @Schema(implementation = FormUpload.class)
+    ))
     @PutMapping(path = "/{idPost}")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public PostResponseDTO updatePost(@PathVariable Long idPost, @Valid @RequestPart("post") PostRequestDTO postRequestDTO, @RequestPart(name = "file") MultipartFile[] file) throws IOException {
@@ -185,6 +190,6 @@ public class PostController {
 }
 
 record FormUpload(
-        MultipartFile[] file,
-        PostRequestDTO postRequestDTO) {
+        MultipartFile file,
+        PostRequestDTO post) {
 }

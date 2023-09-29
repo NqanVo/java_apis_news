@@ -22,8 +22,6 @@ import java.util.Date;
 @Component
 public class JwtService2 {
     private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
-    //    private static final long EXPIRE_DURATION = 24 * 60 * 60 * 1000; // 24h
-//    private static final long EXPIRE_DURATION_LONG = 24 * 60 * 60 * 1000; // 24h
     private static final long EXPIRE_DURATION_LONG = 24 * 60 * 60 * 1000; // 24h
     private static final long EXPIRE_DURATION = 10 * 60 * 1000; // 5p
     private static final Logger logger = LoggerFactory.getLogger(JwtService2.class.getName());
@@ -50,26 +48,6 @@ public class JwtService2 {
                 .build();
     }
 
-    public boolean validateAccessToken(String authToken) {
-        try {
-            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(authToken);
-            return true;
-        } catch (SignatureException e) {
-            logger.error("Invalid JWT signature -> Message: {} ", e.getMessage()); // Trả về thông báo lỗi cho chữ ký không hợp lệ
-        } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token -> Message: {}", e.getMessage()); // Trả về thông báo lỗi cho token không hợp lệ
-        } catch (ExpiredJwtException e) {
-            logger.error("Expired JWT token -> Message: {}", e.getMessage()); // Trả về thông báo lỗi cho token hết hạn
-        } catch (UnsupportedJwtException e) {
-            logger.error("Unsupported JWT token -> Message: {}", e.getMessage()); // Trả về thông báo lỗi cho token không được hỗ trợ
-        } catch (IllegalArgumentException e) {
-            logger.error("JWT claims string is empty -> Message: {}", e.getMessage()); // Trả về thông báo lỗi khi chuỗi JWT claims rỗng
-        }catch (Exception e){
-            logger.error("Error {}", e.getMessage()); // Trả về thông báo lỗi khi chuỗi JWT claims rỗng
-        }
-        return false;
-    }
-
     public Date getExpired(String token) {
         return parseClaims(token).getExpiration();
     }
@@ -89,6 +67,26 @@ public class JwtService2 {
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public boolean validateAccessToken(String authToken) {
+        try {
+            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(authToken);
+            return true;
+        } catch (SignatureException e) {
+            logger.error("Invalid JWT signature -> Message: {} ", e.getMessage()); // Trả về thông báo lỗi cho chữ ký không hợp lệ
+        } catch (MalformedJwtException e) {
+            logger.error("Invalid JWT token -> Message: {}", e.getMessage()); // Trả về thông báo lỗi cho token không hợp lệ
+        } catch (ExpiredJwtException e) {
+            logger.error("Expired JWT token -> Message: {}", e.getMessage()); // Trả về thông báo lỗi cho token hết hạn
+        } catch (UnsupportedJwtException e) {
+            logger.error("Unsupported JWT token -> Message: {}", e.getMessage()); // Trả về thông báo lỗi cho token không được hỗ trợ
+        } catch (IllegalArgumentException e) {
+            logger.error("JWT claims string is empty -> Message: {}", e.getMessage()); // Trả về thông báo lỗi khi chuỗi JWT claims rỗng
+        }catch (Exception e){
+            logger.error("Error {}", e.getMessage()); // Trả về thông báo lỗi khi chuỗi JWT claims rỗng
+        }
+        return false;
     }
 
 }

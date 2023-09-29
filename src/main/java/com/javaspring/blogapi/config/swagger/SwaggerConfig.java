@@ -26,10 +26,15 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 // Thiết lập các server dùng để test api
-                .servers(Lists.newArrayList(new Server().url("http://ec2-52-221-242-149.ap-southeast-1.compute.amazonaws.com:8080"), new Server().url("http://localhost:8080")))
+                .servers(Lists.newArrayList(new Server().url("http://localhost:8080")))
                 // info
                 .info(new Info().title("API - News application")
-                        .description("OpenAPI 3.0")
+                        .description("<h3>Account</h3>\n" +
+                                "    <p><strong>Admin:</strong></p>\n" +
+                                "    <ul>\n" +
+                                "        <li><strong>Username/Email:</strong> admin@gmail.com</li>\n" +
+                                "        <li><strong>Password:</strong> 123Abc</li>\n" +
+                                "    </ul>")
                         .contact(new Contact()
                                 .email("goldenv@gmail.com")
                                 .name("Vo~"))

@@ -230,9 +230,9 @@ public class UserServiceTest {
     @Test
     public void testFindByUsername_200() throws Exception {
         String username = "nganvo@gmail.com";
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(userEntityList.get(0));
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(userEntityList.get(0));
 
-        UserDTO expectedResult = userConverter.UserToUserDTO(userRepository.findByUsername(username));
+        UserDTO expectedResult = userConverter.UserToUserDTO(userRepository.findUserEntityByUsername(username));
         UserDTO actualResult = userService.findByUsername(username);
 
         assertEquals(expectedResult, actualResult);
@@ -241,7 +241,7 @@ public class UserServiceTest {
     @Test
     public void testFindByUsername_404() {
         String username = "nganvo33@gmail.com";
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(null).thenThrow(CustomException.NotFoundException.class);
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(null).thenThrow(CustomException.NotFoundException.class);
         assertThrows(CustomException.NotFoundException.class, () -> userService.findByUsername(username));
     }
 
@@ -310,7 +310,7 @@ public class UserServiceTest {
         userFormUpdateDTO.setUpdatedBy("admin");
         userFormUpdateDTO.setUpdatedDate(new Date());
 
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(userEntityList.get(0));
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(userEntityList.get(0));
         Mockito.when(userConverter.UpdateInfo_UserDTOToUser(userFormUpdateDTO, userEntityList.get(0))).thenReturn(userEntityUpdate);
         Mockito.when(userRepository.save(userEntityUpdate)).thenReturn(userEntityUpdate);
         Mockito.when(userConverter.UserToUserDTO(userEntityUpdate)).thenReturn(userDTOUpdate);
@@ -337,7 +337,7 @@ public class UserServiceTest {
         userFormUpdateDTO.setUpdatedBy("admin");
         userFormUpdateDTO.setUpdatedDate(new Date());
 
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(null).thenThrow(CustomException.NotFoundException.class);
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(null).thenThrow(CustomException.NotFoundException.class);
 
         assertThrows(CustomException.NotFoundException.class, () -> userService.update(userFormUpdateDTO, username));
     }
@@ -381,7 +381,7 @@ public class UserServiceTest {
                 new ArrayList<>(),
                 new ArrayList<>(Arrays.asList(roleAdminEntity, roleUserEntity)), new ArrayList<>());
 
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(userEntityList.get(0));
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(userEntityList.get(0));
 
         Mockito.when(passwordEncoder.matches(userUpdatePasswordDTO.getOldPassword(), userEntityList.get(0).getPassword())).thenReturn(true);
 
@@ -391,7 +391,7 @@ public class UserServiceTest {
 
         userService.updatePassword(userUpdatePasswordDTO, username);
 
-        UserDTO expectedResult = userConverter.UserToUserDTO(userRepository.findByUsername(username));
+        UserDTO expectedResult = userConverter.UserToUserDTO(userRepository.findUserEntityByUsername(username));
         UserDTO actualResult = userService.findByUsername(username);
 
         assertEquals(expectedResult, actualResult);
@@ -404,7 +404,7 @@ public class UserServiceTest {
         userUpdatePasswordDTO.setOldPassword("123Abc");
         String username = "nganvo33333@gmail.com";
 
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(null).thenThrow(CustomException.NotFoundException.class);
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(null).thenThrow(CustomException.NotFoundException.class);
 
         assertThrows(CustomException.NotFoundException.class, () -> userService.updatePassword(userUpdatePasswordDTO, username));
     }
@@ -416,7 +416,7 @@ public class UserServiceTest {
         userUpdatePasswordDTO.setOldPassword("123Abccccc");
         String username = "nganvo33333@gmail.com";
 
-        Mockito.when(userRepository.findByUsername(username)).thenReturn(userEntityList.get(0));
+        Mockito.when(userRepository.findUserEntityByUsername(username)).thenReturn(userEntityList.get(0));
         Mockito
                 .when(passwordEncoder.matches(userUpdatePasswordDTO.getOldPassword(), userEntityList.get(0).getPassword()))
                 .thenReturn(false)
@@ -431,7 +431,7 @@ public class UserServiceTest {
         UserEntity newUserEntity = UserEntity.builder().username("nganvo@gmail.com").password("123456").address("BenTre").avatar(null).fullName("phuc ngan").phone("12345678").roleEntities(new ArrayList<>()).commentEntityList(new ArrayList<>()).postEntityList(new ArrayList<>()).build();
 
         //Mock find user exist
-        Mockito.when(userRepository.findByUsername(newUserDTO.getUsername())).thenReturn(newUserEntity);
+        Mockito.when(userRepository.findUserEntityByUsername(newUserDTO.getUsername())).thenReturn(newUserEntity);
         //Mock save to thor
         Mockito.when(userRepository.save(newUserEntity)).thenReturn(null).thenThrow(CustomException.BadRequestException.class);
 

@@ -75,7 +75,7 @@ public class UserService implements UserInterface {
         try {
             UserEntity newUserEntity;
 
-            if (userRepository.findByUsername(userDTO.getUsername()) != null)
+            if (userRepository.findUserEntityByUsername(userDTO.getUsername()) != null)
                 throw new CustomException.BadRequestException("Người dùng đã tồn tại");
 
             RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
@@ -142,7 +142,7 @@ public class UserService implements UserInterface {
 // quay về quá khứ nếu xãy ra lỗi trong csdl (bao gồm cả xóa ảnh vừa lưu/ không lưu db)
     public UserDTO saveImage(String username, MultipartFile[] file) throws IOException {
         try {
-            UserEntity userEntity = userRepository.findByUsername(username);
+            UserEntity userEntity = userRepository.findUserEntityByUsername(username);
             if (userEntity == null)
                 throw new CustomException.NotFoundException("Không tìm thấy người dùng: " + username);
             if (!(filesService.isSingleFile(file) && filesService.notEmpty(file) && filesService.isImageFile(file[0]) && filesService.maxSize(file[0], 2))) {
@@ -168,7 +168,7 @@ public class UserService implements UserInterface {
     @Override
     public UserDTO update(UserUpdateDTO userUpdateDTO, String username) {
         UserEntity userEntity;
-        UserEntity oldUserEntity = userRepository.findByUsername(username);
+        UserEntity oldUserEntity = userRepository.findUserEntityByUsername(username);
         if (oldUserEntity == null)
             throw new CustomException.NotFoundException("Không tìm thấy người dùng " + username);
 
@@ -181,7 +181,7 @@ public class UserService implements UserInterface {
 
     @Override
     public void updatePassword(UserUpdatePasswordDTO userUpdatePasswordDTO, String username) {
-        UserEntity oldUserEntity = userRepository.findByUsername(username);
+        UserEntity oldUserEntity = userRepository.findUserEntityByUsername(username);
 
         if (oldUserEntity == null)
             throw new CustomException.NotFoundException("Không tìm thấy người dùng " + username);
@@ -196,7 +196,7 @@ public class UserService implements UserInterface {
 
     @Override
     public UserDTO findByUsername(String username) {
-        UserEntity user = userRepository.findByUsername(username);
+        UserEntity user = userRepository.findUserEntityByUsername(username);
         if (user == null) throw new CustomException.NotFoundException("Không tìm thấy người dùng " + username);
         return userConverter.UserToUserDTO(user);
     }
@@ -230,7 +230,7 @@ public class UserService implements UserInterface {
 
     @Override
     public AuthResponseDTO loginUser(AuthLoginDTO authLoginDTO, HttpServletResponse response) {
-        UserEntity userEntity = userRepository.findByUsername(authLoginDTO.getUsername());
+        UserEntity userEntity = userRepository.findUserEntityByUsername(authLoginDTO.getUsername());
         if (userEntity == null)
             throw new CustomException.BadRequestException("Sai tài khoản");
         if (!(passwordEncoder.matches(authLoginDTO.getPassword(), userEntity.getPassword())))
@@ -253,7 +253,7 @@ public class UserService implements UserInterface {
 
     @Override
     public AuthResponseDTO loginOAuth(ResponseUserInfoGoogleOAuth googleUser) {
-        UserEntity userEntity = userRepository.findByUsername(googleUser.getEmail());
+        UserEntity userEntity = userRepository.findUserEntityByUsername(googleUser.getEmail());
         if (userEntity == null) {
             userEntity = oAuthConverter.OAuthGoogleEntity(googleUser);
             RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
@@ -272,7 +272,7 @@ public class UserService implements UserInterface {
 
     @Override
     public AuthResponseDTO loginOAuth(ResponseUserInfoGitHubOAuth gitHubOAuth) {
-        UserEntity userEntity = userRepository.findByUsername(gitHubOAuth.getLogin());
+        UserEntity userEntity = userRepository.findUserEntityByUsername(gitHubOAuth.getLogin());
         if (userEntity == null) {
             userEntity = oAuthConverter.OAuthGitHubToEntity(gitHubOAuth);
             RoleEntity roleEntityUser = roleService.findByName("ROLE_USER");
@@ -310,7 +310,7 @@ public class UserService implements UserInterface {
             if (!refreshTokenRepository.existsRefreshTokenEntitiesByRefreshToken(refreshToken))
                 throw new CustomException.UnauthorizedException("Refresh Token không tồn tại");
             String username = jwtService.getSubject(refreshToken);
-            UserEntity userEntity = userRepository.findByUsername(username);
+            UserEntity userEntity = userRepository.findUserEntityByUsername(username);
             if (userEntity == null) throw new Exception();
             String accessTokenNew = jwtService.generateAccessToken(userEntity, EXPIRED_TYPE.SHORT);
             RefreshTokenEntity refreshTokenNew = jwtService.generateRefreshToken(userEntity);
