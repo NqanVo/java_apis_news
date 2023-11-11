@@ -49,7 +49,7 @@ public class initDatabase {
             categoryEntity.setName("Thể thao");
             categoryRepository.save(categoryEntity);
         }
-        if(userRepository.findByUsername("admin@gmail.com") == null){
+        if(userRepository.findUserEntityByUsername("admin@gmail.com") == null){
             userEntity.setStatus(1);
             userEntity.setEnabled(true);
             userEntity.setUsername("admin@gmail.com");

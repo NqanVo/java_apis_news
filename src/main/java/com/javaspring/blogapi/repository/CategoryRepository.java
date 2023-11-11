@@ -15,4 +15,5 @@ public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> 
     @Modifying
     @Query("delete from tbl_categories c where c.code = ?1")
     void deleteByCode(String code);
+
 }

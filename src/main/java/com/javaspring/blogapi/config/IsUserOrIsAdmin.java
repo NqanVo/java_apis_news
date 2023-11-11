@@ -14,7 +14,8 @@ import java.util.List;
 
 @Component
 public class IsUserOrIsAdmin {
-    @Autowired UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
     private UserEntity userEntity;
     private boolean isAdmin;
 
@@ -48,7 +49,7 @@ public class IsUserOrIsAdmin {
         // * Lấy username từ jwt
         String username = ((UserDetails) userDetails).getUsername();
         // * Kiểm tra xem phải admin không
-        setUserEntity(userRepository.findByUsername(username));
+        setUserEntity(userRepository.findUserEntityByUsername(username));
         List<String> roles = new ArrayList<>();
         for (RoleEntity role : userEntity.getRoleEntities())
             roles.add(role.getCode());
